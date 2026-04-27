@@ -1095,15 +1095,11 @@ function dlSetProgress(pct) {
 btnFetchHls.addEventListener('click', loadHlsStream);
 hlsUrlInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadHlsStream(); });
 
-// CORS proxy list — tried in order until one works
-const CORS_PROXIES = [
-  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  url => url, // try direct last
-];
-let activeProxy = CORS_PROXIES[0]; // default
-
-function proxyUrl(url) { return activeProxy(url); }
+// ── Proxy: our own Vercel serverless function (/api/proxy) ──────────────────
+// This bypasses CDN CORS restrictions by fetching server-side
+function proxyUrl(url) {
+  return '/api/proxy?url=' + encodeURIComponent(url);
+}
 
 function showHlsError(msg) {
   hlsPreview.classList.remove('visible');
@@ -1136,18 +1132,17 @@ async function loadHlsStream() {
   btnFetchHls.querySelector('span').textContent = '⏳ Loading…';
   if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
 
-  // Try direct first, then proxies
+  // Try direct first, then our /api/proxy serverless function
   let loaded = false;
   const attempts = [
     url,
-    `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    proxyUrl(url),
   ];
 
   for (const src of attempts) {
     try {
       const ok = await tryLoadHls(src, url);
-      if (ok) { loaded = true; activeProxy = (u => src === u ? u : src.includes('corsproxy') ? CORS_PROXIES[0] : CORS_PROXIES[1]); break; }
+      if (ok) { loaded = true; break; }
     } catch(e) { /* try next */ }
   }
 
@@ -1293,35 +1288,25 @@ function parseM3u8Segments(text, baseUrl) {
 }
 
 async function fetchText(url) {
-  // Try direct, then CORS proxies
-  const attempts = [
-    url,
-    `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  ];
-  for (const src of attempts) {
+  // Try direct first, then our /api/proxy serverless function
+  for (const src of [url, proxyUrl(url)]) {
     try {
       const res = await fetch(src);
       if (res.ok) return res.text();
     } catch(e) { /* try next */ }
   }
-  throw new Error('All fetch attempts failed (CORS blocked). The CDN may require auth or restrict downloads.');
+  throw new Error('Fetch failed — CDN may require authentication or block all external access.');
 }
 
 async function fetchBinary(url) {
-  // Try direct first (fastest), then proxy if blocked
-  const attempts = [
-    url,
-    `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  ];
-  for (const src of attempts) {
+  // Try direct first (fastest for open CDNs), then /api/proxy for restricted ones
+  for (const src of [url, proxyUrl(url)]) {
     try {
       const res = await fetch(src);
       if (res.ok) return res.arrayBuffer();
     } catch(e) { /* try next */ }
   }
-  throw new Error(`Failed to fetch segment after all attempts: ${url}`);
+  throw new Error(`Failed to fetch segment: ${url.split('/').pop()}`);
 }
 
 </script>
