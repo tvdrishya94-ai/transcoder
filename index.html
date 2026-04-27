@@ -652,61 +652,57 @@
 
 <!-- JSZip for bundling -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<!-- FFmpeg.wasm 0.11 — UMD build, single-thread, no Worker/SharedArrayBuffer required -->
+<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 
-<script type="module">
-// ── FFmpeg.wasm v0.12 (ESM via CDN) ──────────────────────────────────────────
-import { FFmpeg } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js';
-import { fetchFile, toBlobURL } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js';
+<script>
+// ── FFmpeg.wasm v0.11 UMD ─────────────────────────────────────────────────────
+const { createFFmpeg, fetchFile } = FFmpeg;
 
-// ── DOM refs ─────────────────────────────────────────────────────────────────
-const dropzone    = document.getElementById('dropzone');
-const fileInput   = document.getElementById('file-input');
-const fileInfoEl  = document.getElementById('file-info');
-const fiName      = document.getElementById('fi-name');
-const fiSize      = document.getElementById('fi-size');
-const fiRemove    = document.getElementById('fi-remove');
-const resSelect   = document.getElementById('res');
-const vbitrateEl  = document.getElementById('vbitrate');
-const abitrateEl  = document.getElementById('abitrate');
-const segdurEl    = document.getElementById('segdur');
-const prefixEl    = document.getElementById('prefix');
-const btnConvert  = document.getElementById('btn-convert');
-const btnLabel    = document.getElementById('btn-label');
-const spinner     = document.getElementById('spinner');
-const progressWrap= document.getElementById('progress-wrap');
-const progressBar = document.getElementById('progress-bar');
-const progStatus  = document.getElementById('prog-status');
-const progPct     = document.getElementById('prog-pct');
-const logBox      = document.getElementById('log-box');
-const outputSec   = document.getElementById('output-section');
-const outputFiles = document.getElementById('output-files');
-const btnDlAll    = document.getElementById('btn-dl-all');
-const infoRow     = document.getElementById('info-row');
-const statusBanner= document.getElementById('status-banner');
-const ffmpegStatusEl = document.getElementById('ffmpeg-status');
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+const dropzone       = document.getElementById('dropzone');
+const fileInput      = document.getElementById('file-input');
+const fileInfoEl     = document.getElementById('file-info');
+const fiName         = document.getElementById('fi-name');
+const fiSize         = document.getElementById('fi-size');
+const fiRemove       = document.getElementById('fi-remove');
+const resSelect      = document.getElementById('res');
+const vbitrateEl     = document.getElementById('vbitrate');
+const abitrateEl     = document.getElementById('abitrate');
+const segdurEl       = document.getElementById('segdur');
+const prefixEl       = document.getElementById('prefix');
+const btnConvert     = document.getElementById('btn-convert');
+const btnLabel       = document.getElementById('btn-label');
+const spinner        = document.getElementById('spinner');
+const progressWrap   = document.getElementById('progress-wrap');
+const progressBar    = document.getElementById('progress-bar');
+const progStatus     = document.getElementById('prog-status');
+const progPct        = document.getElementById('prog-pct');
+const logBox         = document.getElementById('log-box');
+const outputSec      = document.getElementById('output-section');
+const outputFiles    = document.getElementById('output-files');
+const btnDlAll       = document.getElementById('btn-dl-all');
+const infoRow        = document.getElementById('info-row');
+const statusBanner   = document.getElementById('status-banner');
+const ffmpegStatusEl   = document.getElementById('ffmpeg-status');
 const ffmpegStatusText = document.getElementById('ffmpeg-status-text');
 
-// ── State ────────────────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────────
 let selectedFile = null;
-let ffmpeg = null;
-let ffmpegReady = false;
-let outputBlobs = [];  // {name, blob}
+let ffmpeg       = null;
+let ffmpegReady  = false;
+let outputBlobs  = [];
 
-// ── Load FFmpeg ──────────────────────────────────────────────────────────────
+// ── Load FFmpeg ───────────────────────────────────────────────────────────────
 async function loadFFmpeg() {
   try {
-    ffmpeg = new FFmpeg();
-    ffmpeg.on('log', ({ message }) => addLog(message, 'log-info'));
-    ffmpeg.on('progress', ({ progress }) => setProgress(Math.round(progress * 100)));
-
-    const coreURL   = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm';
-    const ffmpegURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm';
-    await ffmpeg.load({
-      coreURL:   await toBlobURL(`${coreURL}/ffmpeg-core.js`,    'text/javascript'),
-      wasmURL:   await toBlobURL(`${coreURL}/ffmpeg-core.wasm`,  'application/wasm'),
-      workerURL: await toBlobURL(`${ffmpegURL}/worker.js`,       'text/javascript'),
+    ffmpeg = createFFmpeg({
+      log: true,
+      corePath: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
+      progress: ({ ratio }) => setProgress(Math.round(ratio * 100)),
+      logger: ({ message }) => addLog(message, 'log-info'),
     });
-
+    await ffmpeg.load();
     ffmpegReady = true;
     ffmpegStatusEl.classList.add('ready');
     ffmpegStatusText.textContent = 'FFmpeg engine ready';
@@ -727,37 +723,31 @@ function setFile(file) {
   fileInfoEl.style.display = 'flex';
   updateConvertBtn();
 }
-
 function clearFile() {
   selectedFile = null;
   fileInput.value = '';
   fileInfoEl.style.display = 'none';
   updateConvertBtn();
 }
-
 function updateConvertBtn() {
   btnConvert.disabled = !(selectedFile && ffmpegReady);
 }
 
 fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
 fiRemove.addEventListener('click', clearFile);
-
 dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
 dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
 dropzone.addEventListener('drop', e => {
-  e.preventDefault();
-  dropzone.classList.remove('drag-over');
-  const f = e.dataTransfer.files[0];
-  if (f) setFile(f);
+  e.preventDefault(); dropzone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0]; if (f) setFile(f);
 });
 
-// ── Convert ───────────────────────────────────────────────────────────────────
+// ── Transcode ─────────────────────────────────────────────────────────────────
 btnConvert.addEventListener('click', transcode);
 
 async function transcode() {
   if (!selectedFile || !ffmpegReady) return;
 
-  // UI: busy state
   btnConvert.disabled = true;
   spinner.style.display = 'block';
   btnLabel.textContent = 'Transcoding…';
@@ -778,18 +768,14 @@ async function transcode() {
 
   try {
     addLog('Writing input to virtual FS…', 'log-info');
-    await ffmpeg.writeFile('input.mp4', await fetchFile(selectedFile));
+    ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(selectedFile));
     addLog('Input written. Building FFmpeg command…', 'log-info');
 
-    // Build args
     const args = ['-i', 'input.mp4'];
-
-    // Scale
     if (res !== 'original') {
       const [w, h] = res.split('x');
       args.push('-vf', `scale=${w}:${h}`);
     }
-
     args.push(
       '-c:v', 'libx264',
       '-preset', 'fast',
@@ -809,26 +795,22 @@ async function transcode() {
       m3u8
     );
 
-    addLog('Running: ffmpeg ' + args.join(' '), 'log-info');
+    addLog('Running ffmpeg ' + args.join(' '), 'log-info');
     progStatus.textContent = 'Transcoding (this may take a while)…';
-
-    await ffmpeg.exec(args);
+    await ffmpeg.run(...args);
 
     progStatus.textContent = 'Collecting output files…';
     setProgress(100);
     addLog('Transcode complete! Reading output files…', 'log-ok');
 
-    // List all files in FS
-    const fsFiles = await ffmpeg.listDir('/');
-    const outNames = fsFiles
-      .filter(f => !f.isDir)
-      .map(f => f.name)
-      .filter(n => n.endsWith('.m3u8') || n.endsWith('.ts'));
+    // Read output files from FS
+    const allFiles = ffmpeg.FS('readdir', '/');
+    const outNames = allFiles.filter(n => n.endsWith('.m3u8') || n.endsWith('.ts'));
 
     if (outNames.length === 0) throw new Error('No output files found. Check FFmpeg logs.');
 
     for (const name of outNames) {
-      const data = await ffmpeg.readFile(name);
+      const data = ffmpeg.FS('readFile', name);
       const mime = name.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : 'video/MP2T';
       const blob = new Blob([data.buffer], { type: mime });
       outputBlobs.push({ name, blob });
@@ -836,19 +818,23 @@ async function transcode() {
     }
 
     showOutput(prefix);
+
+    // Cleanup FS
+    try { ffmpeg.FS('unlink', 'input.mp4'); } catch(e) {}
+    for (const { name } of outputBlobs) {
+      try { ffmpeg.FS('unlink', name); } catch(e) {}
+    }
+
   } catch(err) {
     addLog('ERROR: ' + err.message, 'log-err');
     progStatus.textContent = 'Failed — see log below';
     statusBanner.innerHTML = `<div class="status-msg error">❌ ${err.message}</div>`;
     outputSec.classList.add('visible');
-    outputFiles.innerHTML = '';
-    infoRow.innerHTML = '';
   } finally {
     btnConvert.disabled = false;
     spinner.style.display = 'none';
     btnLabel.textContent = '⚡ Start Transcoding';
-    // cleanup FS
-    try { await ffmpeg.deleteFile('input.mp4'); } catch(e){}
+    updateConvertBtn();
   }
 }
 
@@ -860,11 +846,10 @@ function showOutput(prefix) {
 
   const m3u8Files  = outputBlobs.filter(f => f.name.endsWith('.m3u8'));
   const tsFiles    = outputBlobs.filter(f => f.name.endsWith('.ts'));
-  const totalBytes = outputBlobs.reduce((a,b) => a + b.blob.size, 0);
+  const totalBytes = outputBlobs.reduce((a, b) => a + b.blob.size, 0);
 
   statusBanner.innerHTML = `<div class="status-msg success">✅ Conversion complete — ${outputBlobs.length} files generated</div>`;
 
-  // Show m3u8 first
   for (const f of [...m3u8Files, ...tsFiles]) {
     const icon = f.name.endsWith('.m3u8') ? '📋' : '🎞';
     const el = document.createElement('div');
@@ -875,34 +860,27 @@ function showOutput(prefix) {
         <div class="of-name">${f.name}</div>
         <div class="of-size">${formatBytes(f.blob.size)}</div>
       </div>
-      <button class="btn-dl" data-name="${f.name}">↓ DL</button>
-    `;
+      <button class="btn-dl" data-name="${f.name}">↓ DL</button>`;
     el.querySelector('.btn-dl').addEventListener('click', () => downloadBlob(f.blob, f.name));
     outputFiles.appendChild(el);
   }
 
-  // Info chips
   infoRow.innerHTML = `
     <div class="info-chip"><span>FILES</span> ${outputBlobs.length}</div>
     <div class="info-chip"><span>SEGMENTS</span> ${tsFiles.length}</div>
     <div class="info-chip"><span>TOTAL SIZE</span> ${formatBytes(totalBytes)}</div>
-    <div class="info-chip"><span>FORMAT</span> HLS / m3u8</div>
-  `;
+    <div class="info-chip"><span>FORMAT</span> HLS / m3u8</div>`;
 }
 
-// ── Download all as ZIP ────────────────────────────────────────────────────────
+// ── ZIP download ──────────────────────────────────────────────────────────────
 btnDlAll.addEventListener('click', async () => {
   if (!outputBlobs.length) return;
   btnDlAll.textContent = '⏳ Zipping…';
   btnDlAll.disabled = true;
   const zip = new JSZip();
   const folder = zip.folder('hls_output');
-  for (const { name, blob } of outputBlobs) {
-    folder.file(name, blob);
-  }
-  // Add a sample HTML player
-  folder.file('player.html', playerHTML(outputBlobs.find(f=>f.name.endsWith('.m3u8'))?.name || 'stream.m3u8'));
-
+  for (const { name, blob } of outputBlobs) folder.file(name, blob);
+  folder.file('player.html', playerHTML(outputBlobs.find(f => f.name.endsWith('.m3u8'))?.name || 'stream.m3u8'));
   const content = await zip.generateAsync({ type: 'blob' });
   downloadBlob(content, 'hls_output.zip');
   btnDlAll.textContent = '⬇ Download All Files as ZIP';
@@ -911,55 +889,36 @@ btnDlAll.addEventListener('click', async () => {
 
 function playerHTML(m3u8Name) {
   return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>HLS Player</title>
-<style>
-  body{margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh;}
-  video{max-width:100%;max-height:100vh;border-radius:8px;}
-</style>
-</head>
-<body>
+<html lang="en"><head><meta charset="UTF-8"><title>HLS Player</title>
+<style>body{margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh;}video{max-width:100%;max-height:100vh;border-radius:8px;}</style>
+</head><body>
 <video id="video" controls autoplay muted></video>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js"><\/script>
 <script>
-  const src = './${m3u8Name}';
-  const v = document.getElementById('video');
-  if (Hls.isSupported()) {
-    const hls = new Hls();
-    hls.loadSource(src);
-    hls.attachMedia(v);
-  } else if (v.canPlayType('application/vnd.apple.mpegurl')) {
-    v.src = src;
-  }
-<\/script>
-</body>
-</html>`;
+  const src='./${m3u8Name}',v=document.getElementById('video');
+  if(Hls.isSupported()){const h=new Hls();h.loadSource(src);h.attachMedia(v);}
+  else if(v.canPlayType('application/vnd.apple.mpegurl')){v.src=src;}
+<\/script></body></html>`;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatBytes(b) {
   if (b < 1024) return b + ' B';
-  if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
-  return (b/1024/1024).toFixed(2) + ' MB';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(2) + ' MB';
 }
-
 function downloadBlob(blob, name) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = name; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
-
 function addLog(msg, cls='log-info') {
   const span = document.createElement('span');
-  span.className = cls;
-  span.textContent = msg;
+  span.className = cls; span.textContent = msg;
   logBox.appendChild(span);
   logBox.scrollTop = logBox.scrollHeight;
 }
-
 function setProgress(pct) {
   progressBar.style.width = pct + '%';
   progPct.textContent = pct + '%';
