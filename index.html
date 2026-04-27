@@ -698,7 +698,8 @@ async function loadFFmpeg() {
   try {
     ffmpeg = createFFmpeg({
       log: true,
-      corePath: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
+      // Use unpkg for @ffmpeg/core@0.11.0 — jsdelivr sometimes has stale cache
+      corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
       progress: ({ ratio }) => setProgress(Math.round(ratio * 100)),
       logger: ({ message }) => addLog(message, 'log-info'),
     });
