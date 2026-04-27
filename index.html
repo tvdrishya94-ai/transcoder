@@ -699,10 +699,12 @@ async function loadFFmpeg() {
     ffmpeg.on('log', ({ message }) => addLog(message, 'log-info'));
     ffmpeg.on('progress', ({ progress }) => setProgress(Math.round(progress * 100)));
 
-    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+    const coreURL   = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+    const ffmpegURL = 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm';
     await ffmpeg.load({
-      coreURL:   await toBlobURL(`${baseURL}/ffmpeg-core.js`,   'text/javascript'),
-      wasmURL:   await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+      coreURL:   await toBlobURL(`${coreURL}/ffmpeg-core.js`,    'text/javascript'),
+      wasmURL:   await toBlobURL(`${coreURL}/ffmpeg-core.wasm`,  'application/wasm'),
+      workerURL: await toBlobURL(`${ffmpegURL}/worker.js`,       'text/javascript'),
     });
 
     ffmpegReady = true;
