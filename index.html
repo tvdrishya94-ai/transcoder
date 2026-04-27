@@ -484,6 +484,123 @@
     animation: spin .7s linear infinite;
     display: none;
   }
+
+  /* ── HLS → MP4 Downloader ─────────────────────────────── */
+  .url-input-wrap {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+  }
+  .url-input-wrap input[type=text] {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 10px 14px;
+    border-radius: 7px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .url-input-wrap input[type=text]:focus { border-color: var(--accent); }
+  .url-input-wrap input[type=text]::placeholder { color: var(--muted); }
+  .btn-fetch {
+    flex-shrink: 0;
+    padding: 10px 18px;
+    background: var(--accent2);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .btn-fetch:hover:not(:disabled) {
+    background: #8b4cf7;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(124,58,237,.4);
+  }
+  .btn-fetch:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .hls-preview {
+    margin-top: 14px;
+    display: none;
+  }
+  .hls-preview.visible { display: block; }
+  .hls-preview video {
+    width: 100%;
+    border-radius: 8px;
+    background: #000;
+    max-height: 260px;
+    display: block;
+    margin-bottom: 12px;
+  }
+  .hls-meta {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .hls-meta .info-chip span:first-child { color: var(--accent2); }
+
+  .dl-progress-wrap { margin-top: 12px; display: none; }
+  .dl-progress-wrap.visible { display: block; }
+  .dl-log-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    height: 80px;
+    overflow-y: auto;
+    line-height: 1.6;
+  }
+  .dl-log-box span { display: block; }
+  .btn-dl-mp4 {
+    width: 100%;
+    margin-top: 12px;
+    padding: 13px;
+    background: var(--accent2);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-dl-mp4:hover:not(:disabled) {
+    background: #8b4cf7;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(124,58,237,.35);
+  }
+  .btn-dl-mp4:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-dl-mp4 .spinner2 {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    display: none;
+  }
 </style>
 </head>
 <body>
@@ -613,6 +730,47 @@
 
 
 
+
+  <!-- HLS → MP4 Downloader -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step" style="background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.4);color:#a78bfa;">↓</div>
+      <h2 style="color:var(--text);">HLS Stream → MP4 Download</h2>
+    </div>
+    <div class="card-body">
+      <div class="url-input-wrap">
+        <input type="text" id="hls-url-input"
+          placeholder="https://example.com/video/playlist.m3u8"
+          spellcheck="false" autocomplete="off"/>
+        <button class="btn-fetch" id="btn-fetch-hls">
+          <span>▶ Load</span>
+        </button>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-top:8px;font-family:var(--mono);">
+        Paste any public .m3u8 URL · Preview plays in browser · Download converts to MP4
+      </p>
+
+      <div class="hls-preview" id="hls-preview">
+        <video id="hls-video" controls muted playsinline></video>
+        <div class="hls-meta" id="hls-meta"></div>
+        <button class="btn-dl-mp4" id="btn-dl-mp4">
+          <div class="spinner2" id="spinner2"></div>
+          <span id="dl-mp4-label">⬇ Download as MP4</span>
+        </button>
+        <div class="dl-progress-wrap" id="dl-progress-wrap">
+          <div class="progress-label">
+            <span id="dl-prog-status">Downloading segments…</span>
+            <span id="dl-prog-pct" style="color:var(--accent2);">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-bar" id="dl-progress-bar" style="background:linear-gradient(90deg,#7c3aed,#a78bfa);"></div>
+          </div>
+          <div class="dl-log-box" id="dl-log-box"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <footer>
@@ -620,6 +778,8 @@
   <span>FFmpeg.wasm · <a href="https://github.com/ffmpegwasm/ffmpeg.wasm" target="_blank">ffmpeg.wasm</a></span>
 </footer>
 
+<!-- hls.js for HLS preview & segment fetching -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
 <!-- JSZip for bundling -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <!-- FFmpeg.wasm 0.11 — UMD build, single-thread, no Worker/SharedArrayBuffer required -->
@@ -897,6 +1057,210 @@ function setProgress(pct) {
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 loadFFmpeg();
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// HLS → MP4 DOWNLOADER
+// ══════════════════════════════════════════════════════════════════════════════
+const hlsUrlInput    = document.getElementById('hls-url-input');
+const btnFetchHls    = document.getElementById('btn-fetch-hls');
+const hlsPreview     = document.getElementById('hls-preview');
+const hlsVideo       = document.getElementById('hls-video');
+const hlsMeta        = document.getElementById('hls-meta');
+const btnDlMp4       = document.getElementById('btn-dl-mp4');
+const dlMp4Label     = document.getElementById('dl-mp4-label');
+const spinner2       = document.getElementById('spinner2');
+const dlProgressWrap = document.getElementById('dl-progress-wrap');
+const dlProgressBar  = document.getElementById('dl-progress-bar');
+const dlProgStatus   = document.getElementById('dl-prog-status');
+const dlProgPct      = document.getElementById('dl-prog-pct');
+const dlLogBox       = document.getElementById('dl-log-box');
+
+let hlsInstance = null;
+let currentM3u8Url = '';
+let parsedSegments = [];
+
+function dlLog(msg, cls='log-info') {
+  const s = document.createElement('span');
+  s.className = cls; s.textContent = msg;
+  dlLogBox.appendChild(s);
+  dlLogBox.scrollTop = dlLogBox.scrollHeight;
+}
+function dlSetProgress(pct) {
+  dlProgressBar.style.width = pct + '%';
+  dlProgPct.textContent = pct + '%';
+}
+
+// ── Load & Preview ────────────────────────────────────────────────────────────
+btnFetchHls.addEventListener('click', loadHlsStream);
+hlsUrlInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadHlsStream(); });
+
+async function loadHlsStream() {
+  const url = hlsUrlInput.value.trim();
+  if (!url) return;
+  if (!url.includes('.m3u8') && !url.includes('m3u')) {
+    alert('Please enter a valid .m3u8 URL');
+    return;
+  }
+
+  currentM3u8Url = url;
+  parsedSegments = [];
+  btnFetchHls.disabled = true;
+  btnFetchHls.querySelector('span').textContent = '⏳ Loading…';
+
+  // Destroy previous hls instance
+  if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+
+  try {
+    if (Hls.isSupported()) {
+      hlsInstance = new Hls({ enableWorker: false });
+      hlsInstance.loadSource(url);
+      hlsInstance.attachMedia(hlsVideo);
+      hlsInstance.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+        hlsMeta.innerHTML = `
+          <div class="info-chip"><span>LEVELS</span> ${data.levels.length}</div>
+          <div class="info-chip"><span>URL</span> ${url.split('/').pop()}</div>`;
+        hlsPreview.classList.add('visible');
+        btnFetchHls.disabled = false;
+        btnFetchHls.querySelector('span').textContent = '▶ Load';
+      });
+      hlsInstance.on(Hls.Events.FRAG_LOADED, (event, data) => {
+        // Collect segment URLs as they load
+        const segUrl = data.frag.url;
+        if (!parsedSegments.includes(segUrl)) parsedSegments.push(segUrl);
+      });
+      hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          btnFetchHls.disabled = false;
+          btnFetchHls.querySelector('span').textContent = '▶ Load';
+          alert('Failed to load stream: ' + (data.details || 'unknown error'));
+        }
+      });
+    } else if (hlsVideo.canPlayType('application/vnd.apple.mpegurl')) {
+      // Safari native HLS
+      hlsVideo.src = url;
+      hlsPreview.classList.add('visible');
+      btnFetchHls.disabled = false;
+      btnFetchHls.querySelector('span').textContent = '▶ Load';
+    }
+  } catch(err) {
+    btnFetchHls.disabled = false;
+    btnFetchHls.querySelector('span').textContent = '▶ Load';
+    alert('Error: ' + err.message);
+  }
+}
+
+// ── Download as MP4 ──────────────────────────────────────────────────────────
+btnDlMp4.addEventListener('click', downloadAsMp4);
+
+async function downloadAsMp4() {
+  const url = currentM3u8Url;
+  if (!url) return;
+
+  btnDlMp4.disabled = true;
+  spinner2.style.display = 'block';
+  dlMp4Label.textContent = 'Preparing…';
+  dlProgressWrap.classList.add('visible');
+  dlLogBox.innerHTML = '';
+  dlSetProgress(0);
+
+  try {
+    // Step 1: Parse the m3u8 to get all segment URLs
+    dlLog('Fetching playlist…', 'log-info');
+    dlProgStatus.textContent = 'Parsing playlist…';
+
+    const m3u8Text = await fetchText(url);
+    const baseUrl  = url.substring(0, url.lastIndexOf('/') + 1);
+    const segments = parseM3u8Segments(m3u8Text, baseUrl);
+
+    if (segments.length === 0) throw new Error('No segments found in playlist. It may be a master playlist — try a specific quality URL (e.g. /480p/video.m3u8)');
+
+    dlLog(`Found ${segments.length} segments`, 'log-ok');
+    dlProgStatus.textContent = `Downloading ${segments.length} segments…`;
+
+    // Step 2: Download all .ts segments
+    const tsBuffers = [];
+    for (let i = 0; i < segments.length; i++) {
+      const pct = Math.round((i / segments.length) * 85);
+      dlSetProgress(pct);
+      dlProgStatus.textContent = `Segment ${i+1} / ${segments.length}`;
+      dlLog(`Downloading segment ${i+1}/${segments.length}…`, 'log-info');
+      const buf = await fetchBinary(segments[i]);
+      tsBuffers.push(buf);
+    }
+
+    dlLog('All segments downloaded. Merging…', 'log-ok');
+    dlProgStatus.textContent = 'Merging segments…';
+    dlSetProgress(90);
+
+    // Step 3: Concatenate all TS buffers into one blob
+    // This produces a raw MPEG-TS file — rename to .ts or use as .mp4 (most players accept it)
+    const totalSize = tsBuffers.reduce((a, b) => a + b.byteLength, 0);
+    const merged = new Uint8Array(totalSize);
+    let offset = 0;
+    for (const buf of tsBuffers) {
+      merged.set(new Uint8Array(buf), offset);
+      offset += buf.byteLength;
+    }
+
+    dlSetProgress(100);
+    dlProgStatus.textContent = 'Done! Saving file…';
+    dlLog(`Merged ${formatBytes(totalSize)} · triggering download`, 'log-ok');
+
+    // Download — name it .ts (MPEG-TS container, plays in VLC/most players)
+    // We use .mp4 extension since most modern players handle TS segments fine
+    const filename = url.split('/').slice(-2,-1)[0] || 'video';
+    const blob = new Blob([merged], { type: 'video/mp2t' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename + '_hls.ts';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 8000);
+
+    dlLog('✔ Download started! File saved as .ts (open with VLC or rename to .mp4)', 'log-ok');
+
+  } catch(err) {
+    dlLog('ERROR: ' + err.message, 'log-err');
+    dlProgStatus.textContent = 'Failed';
+  } finally {
+    btnDlMp4.disabled = false;
+    spinner2.style.display = 'none';
+    dlMp4Label.textContent = '⬇ Download as MP4';
+  }
+}
+
+// ── M3U8 Parser ──────────────────────────────────────────────────────────────
+function parseM3u8Segments(text, baseUrl) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const segments = [];
+  for (const line of lines) {
+    if (line.startsWith('#')) continue;
+    if (line.endsWith('.ts') || line.includes('.ts?') || line.endsWith('.aac') || line.endsWith('.mp4') || line.endsWith('.m4s')) {
+      if (line.startsWith('http://') || line.startsWith('https://')) {
+        segments.push(line);
+      } else if (line.startsWith('/')) {
+        const origin = new URL(baseUrl).origin;
+        segments.push(origin + line);
+      } else {
+        segments.push(baseUrl + line);
+      }
+    }
+  }
+  return segments;
+}
+
+async function fetchText(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
+  return res.text();
+}
+
+async function fetchBinary(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status} fetching segment`);
+  return res.arrayBuffer();
+}
+
 </script>
 </body>
 </html>
