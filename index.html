@@ -1095,59 +1095,102 @@ function dlSetProgress(pct) {
 btnFetchHls.addEventListener('click', loadHlsStream);
 hlsUrlInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadHlsStream(); });
 
+// CORS proxy list — tried in order until one works
+const CORS_PROXIES = [
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => url, // try direct last
+];
+let activeProxy = CORS_PROXIES[0]; // default
+
+function proxyUrl(url) { return activeProxy(url); }
+
+function showHlsError(msg) {
+  hlsPreview.classList.remove('visible');
+  // show inline error instead of alert
+  const existing = document.getElementById('hls-error-msg');
+  if (existing) existing.remove();
+  const div = document.createElement('div');
+  div.id = 'hls-error-msg';
+  div.className = 'status-msg error';
+  div.style.marginTop = '12px';
+  div.innerHTML = `❌ ${msg}`;
+  document.querySelector('.url-input-wrap').after(div);
+  setTimeout(() => div.remove(), 8000);
+}
+
 async function loadHlsStream() {
   const url = hlsUrlInput.value.trim();
   if (!url) return;
   if (!url.includes('.m3u8') && !url.includes('m3u')) {
-    alert('Please enter a valid .m3u8 URL');
+    showHlsError('Please enter a valid .m3u8 URL');
     return;
   }
+
+  // Remove any previous error
+  document.getElementById('hls-error-msg')?.remove();
 
   currentM3u8Url = url;
   parsedSegments = [];
   btnFetchHls.disabled = true;
   btnFetchHls.querySelector('span').textContent = '⏳ Loading…';
-
-  // Destroy previous hls instance
   if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
 
-  try {
-    if (Hls.isSupported()) {
-      hlsInstance = new Hls({ enableWorker: false });
-      hlsInstance.loadSource(url);
-      hlsInstance.attachMedia(hlsVideo);
-      hlsInstance.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
-        hlsMeta.innerHTML = `
-          <div class="info-chip"><span>LEVELS</span> ${data.levels.length}</div>
-          <div class="info-chip"><span>URL</span> ${url.split('/').pop()}</div>`;
-        hlsPreview.classList.add('visible');
-        btnFetchHls.disabled = false;
-        btnFetchHls.querySelector('span').textContent = '▶ Load';
-      });
-      hlsInstance.on(Hls.Events.FRAG_LOADED, (event, data) => {
-        // Collect segment URLs as they load
-        const segUrl = data.frag.url;
-        if (!parsedSegments.includes(segUrl)) parsedSegments.push(segUrl);
-      });
-      hlsInstance.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) {
-          btnFetchHls.disabled = false;
-          btnFetchHls.querySelector('span').textContent = '▶ Load';
-          alert('Failed to load stream: ' + (data.details || 'unknown error'));
-        }
-      });
-    } else if (hlsVideo.canPlayType('application/vnd.apple.mpegurl')) {
-      // Safari native HLS
-      hlsVideo.src = url;
+  // Try direct first, then proxies
+  let loaded = false;
+  const attempts = [
+    url,
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  ];
+
+  for (const src of attempts) {
+    try {
+      const ok = await tryLoadHls(src, url);
+      if (ok) { loaded = true; activeProxy = (u => src === u ? u : src.includes('corsproxy') ? CORS_PROXIES[0] : CORS_PROXIES[1]); break; }
+    } catch(e) { /* try next */ }
+  }
+
+  if (!loaded) {
+    btnFetchHls.disabled = false;
+    btnFetchHls.querySelector('span').textContent = '▶ Load';
+    showHlsError('CORS blocked: This CDN restricts cross-origin access. The download button will still attempt to fetch segments directly.');
+    // Still show the download button so user can try
+    hlsMeta.innerHTML = `<div class="info-chip"><span>URL</span> ${url.split('/').pop()}</div><div class="info-chip" style="color:var(--warn)"><span>⚠</span> Preview blocked by CORS</div>`;
+    hlsPreview.classList.add('visible');
+  }
+}
+
+function tryLoadHls(src, originalUrl) {
+  return new Promise((resolve, reject) => {
+    if (!Hls.isSupported()) {
+      hlsVideo.src = src;
       hlsPreview.classList.add('visible');
       btnFetchHls.disabled = false;
       btnFetchHls.querySelector('span').textContent = '▶ Load';
+      resolve(true); return;
     }
-  } catch(err) {
-    btnFetchHls.disabled = false;
-    btnFetchHls.querySelector('span').textContent = '▶ Load';
-    alert('Error: ' + err.message);
-  }
+    const hls = new Hls({ enableWorker: false, manifestLoadingTimeOut: 8000, manifestLoadingMaxRetry: 0 });
+    hls.loadSource(src);
+    hls.attachMedia(hlsVideo);
+    hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+      hlsInstance = hls;
+      hlsMeta.innerHTML = `
+        <div class="info-chip"><span>LEVELS</span> ${data.levels.length}</div>
+        <div class="info-chip"><span>URL</span> ${originalUrl.split('/').pop()}</div>`;
+      hlsPreview.classList.add('visible');
+      btnFetchHls.disabled = false;
+      btnFetchHls.querySelector('span').textContent = '▶ Load';
+      hls.on(Hls.Events.FRAG_LOADED, (ev, d) => {
+        if (!parsedSegments.includes(d.frag.url)) parsedSegments.push(d.frag.url);
+      });
+      resolve(true);
+    });
+    hls.on(Hls.Events.ERROR, (event, data) => {
+      if (data.fatal) { hls.destroy(); reject(new Error(data.details)); }
+    });
+    setTimeout(() => { hls.destroy(); reject(new Error('timeout')); }, 9000);
+  });
 }
 
 // ── Download as MP4 ──────────────────────────────────────────────────────────
@@ -1250,15 +1293,35 @@ function parseM3u8Segments(text, baseUrl) {
 }
 
 async function fetchText(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
-  return res.text();
+  // Try direct, then CORS proxies
+  const attempts = [
+    url,
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  ];
+  for (const src of attempts) {
+    try {
+      const res = await fetch(src);
+      if (res.ok) return res.text();
+    } catch(e) { /* try next */ }
+  }
+  throw new Error('All fetch attempts failed (CORS blocked). The CDN may require auth or restrict downloads.');
 }
 
 async function fetchBinary(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status} fetching segment`);
-  return res.arrayBuffer();
+  // Try direct first (fastest), then proxy if blocked
+  const attempts = [
+    url,
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  ];
+  for (const src of attempts) {
+    try {
+      const res = await fetch(src);
+      if (res.ok) return res.arrayBuffer();
+    } catch(e) { /* try next */ }
+  }
+  throw new Error(`Failed to fetch segment after all attempts: ${url}`);
 }
 
 </script>
