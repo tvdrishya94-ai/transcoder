@@ -1132,18 +1132,18 @@ async function loadHlsStream() {
   btnFetchHls.querySelector('span').textContent = '⏳ Loading…';
   if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
 
-  // Try direct first, then our /api/proxy serverless function
+  // Try proxy first (rewrites all segment URLs), then direct
   let loaded = false;
   const attempts = [
-    url,
-    proxyUrl(url),
+    proxyUrl(url),  // proxy first — rewrites m3u8 so all segments also go through proxy
+    url,            // direct fallback for open CDNs
   ];
 
   for (const src of attempts) {
     try {
       const ok = await tryLoadHls(src, url);
       if (ok) { loaded = true; break; }
-    } catch(e) { /* try next */ }
+    } catch(e) { console.warn('HLS attempt failed:', src, e.message); }
   }
 
   if (!loaded) {
@@ -1158,6 +1158,13 @@ async function loadHlsStream() {
 
 function tryLoadHls(src, originalUrl) {
   return new Promise((resolve, reject) => {
+    const config = {
+      enableWorker: false,
+      manifestLoadingTimeOut: 12000,
+      manifestLoadingMaxRetry: 0,
+      levelLoadingTimeOut: 12000,
+      fragLoadingTimeOut: 20000,
+    };
     if (!Hls.isSupported()) {
       hlsVideo.src = src;
       hlsPreview.classList.add('visible');
@@ -1165,7 +1172,7 @@ function tryLoadHls(src, originalUrl) {
       btnFetchHls.querySelector('span').textContent = '▶ Load';
       resolve(true); return;
     }
-    const hls = new Hls({ enableWorker: false, manifestLoadingTimeOut: 8000, manifestLoadingMaxRetry: 0 });
+    const hls = new Hls(config);
     hls.loadSource(src);
     hls.attachMedia(hlsVideo);
     hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
@@ -1184,7 +1191,7 @@ function tryLoadHls(src, originalUrl) {
     hls.on(Hls.Events.ERROR, (event, data) => {
       if (data.fatal) { hls.destroy(); reject(new Error(data.details)); }
     });
-    setTimeout(() => { hls.destroy(); reject(new Error('timeout')); }, 9000);
+    setTimeout(() => { hls.destroy(); reject(new Error('timeout')); }, 13000);
   });
 }
 
@@ -1248,14 +1255,14 @@ async function downloadAsMp4() {
     // Download — name it .ts (MPEG-TS container, plays in VLC/most players)
     // We use .mp4 extension since most modern players handle TS segments fine
     const filename = url.split('/').slice(-2,-1)[0] || 'video';
-    const blob = new Blob([merged], { type: 'video/mp2t' });
+    const blob = new Blob([merged], { type: 'video/mp4' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = filename + '_hls.ts';
+    a.download = filename + '.mp4';
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 8000);
 
-    dlLog('✔ Download started! File saved as .ts (open with VLC or rename to .mp4)', 'log-ok');
+    dlLog('✔ Download started! File saved as .mp4', 'log-ok');
 
   } catch(err) {
     dlLog('ERROR: ' + err.message, 'log-err');
