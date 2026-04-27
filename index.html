@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>HLS Transcoder</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #18181f;
+    --border: #252530;
+    --accent: #00e5ff;
+    --accent2: #7c3aed;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --success: #00d68f;
+    --error: #ff4d6a;
+    --warn: #ffb547;
+    --mono: 'Space Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    width: 100%;
+    max-width: 860px;
+    padding: 48px 24px 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: rgba(0,229,255,.07);
+    border: 1px solid rgba(0,229,255,.2);
+    padding: 4px 10px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+  }
+  .badge::before { content: '●'; font-size: 7px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(28px, 5vw, 46px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 10px;
+  }
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    font-size: 15px;
+    color: var(--muted);
+    font-weight: 300;
+    max-width: 520px;
+    line-height: 1.6;
+    margin-bottom: 40px;
+  }
+
+  main {
+    width: 100%;
+    max-width: 860px;
+    padding: 0 24px 80px;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .card-header .step {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: rgba(0,229,255,.1);
+    border: 1px solid rgba(0,229,255,.3);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .card-header h2 {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  .card-body { padding: 24px 20px; }
+
+  /* Drop zone */
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s ease;
+    position: relative;
+  }
+  .dropzone:hover, .dropzone.drag-over {
+    border-color: var(--accent);
+    background: rgba(0,229,255,.04);
+  }
+  .dropzone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;
+  }
+  .dropzone-icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .dropzone p { color: var(--muted); font-size: 14px; }
+  .dropzone strong { color: var(--text); font-weight: 500; }
+  .dropzone .size-hint { font-size: 12px; margin-top: 6px; }
+
+  /* File info */
+  .file-info {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-top: 14px;
+  }
+  .file-info .fi-icon { font-size: 24px; }
+  .file-info .fi-name {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 360px;
+  }
+  .file-info .fi-size { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .file-info .fi-remove {
+    margin-left: auto;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 4px;
+    width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    transition: all .15s;
+  }
+  .file-info .fi-remove:hover { color: var(--error); border-color: var(--error); }
+
+  /* Settings grid */
+  .settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+  }
+  .field label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .field select, .field input[type=number] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: border-color .2s;
+  }
+  .field select:focus, .field input[type=number]:focus {
+    border-color: var(--accent);
+  }
+  .field select option { background: var(--surface2); }
+
+  /* Convert button */
+  .btn-convert {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 20px;
+  }
+  .btn-convert:hover:not(:disabled) {
+    background: #33ecff;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(0,229,255,.3);
+  }
+  .btn-convert:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  /* Progress */
+  .progress-wrap { margin-top: 20px; display: none; }
+  .progress-wrap.visible { display: block; }
+
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .progress-label #prog-pct { color: var(--accent); }
+
+  .progress-track {
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    border-radius: 2px;
+    transition: width .3s ease;
+  }
+
+  .log-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-top: 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    height: 100px;
+    overflow-y: auto;
+    line-height: 1.6;
+  }
+  .log-box span { display: block; }
+  .log-box .log-info { color: var(--muted); }
+  .log-box .log-ok { color: var(--success); }
+  .log-box .log-err { color: var(--error); }
+  .log-box .log-warn { color: var(--warn); }
+
+  /* Output */
+  .output-section { display: none; }
+  .output-section.visible { display: block; }
+
+  .output-files { display: flex; flex-direction: column; gap: 10px; }
+
+  .out-file {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+  .out-file .of-icon { font-size: 20px; flex-shrink: 0; }
+  .out-file .of-name {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .out-file .of-size { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .btn-dl {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    background: none;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn-dl:hover { background: rgba(0,229,255,.1); }
+
+  .btn-dl-all {
+    width: 100%;
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(0,229,255,.08);
+    border: 1px solid rgba(0,229,255,.3);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-dl-all:hover { background: rgba(0,229,255,.15); }
+
+  /* Info row */
+  .info-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+  .info-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 5px 10px;
+    border-radius: 5px;
+  }
+  .info-chip span:first-child { color: var(--accent); }
+
+  .status-msg {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 7px;
+    font-size: 13px;
+    margin-bottom: 14px;
+  }
+  .status-msg.success { background: rgba(0,214,143,.08); border: 1px solid rgba(0,214,143,.25); color: var(--success); }
+  .status-msg.error { background: rgba(255,77,106,.08); border: 1px solid rgba(255,77,106,.25); color: var(--error); }
+
+  /* How it works */
+  .how-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+  }
+  .how-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .how-item .hi-num {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    opacity: .4;
+    margin-bottom: 6px;
+  }
+  .how-item h3 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .how-item p { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  footer {
+    width: 100%;
+    max-width: 860px;
+    padding: 0 24px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    position: relative;
+    z-index: 1;
+  }
+  footer a { color: var(--muted); text-decoration: none; }
+  footer a:hover { color: var(--accent); }
+
+  @media (max-width: 520px) {
+    .settings-grid { grid-template-columns: 1fr 1fr; }
+    .how-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* Loading ffmpeg */
+  .ffmpeg-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    padding: 10px 0 0;
+  }
+  .ffmpeg-status .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--warn);
+    animation: pulse 1.5s infinite;
+  }
+  .ffmpeg-status.ready .dot { background: var(--success); animation: none; }
+  .ffmpeg-status.err .dot { background: var(--error); animation: none; }
+
+  /* Spinner for button */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(0,0,0,.3);
+    border-top-color: #000;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="badge">MP4 → HLS Transcoder</div>
+  <h1>Convert <span>MP4</span><br>to HLS Stream</h1>
+  <p class="subtitle">Browser-based transcoder. Your video never leaves your device — everything runs locally using FFmpeg.wasm. Download a ready-to-host HLS bundle for GitHub or CDN.</p>
+</header>
+
+<main>
+
+  <!-- STEP 1 — Upload -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step">1</div>
+      <h2>Select Video</h2>
+    </div>
+    <div class="card-body">
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="file-input" accept="video/mp4,video/*"/>
+        <span class="dropzone-icon">🎬</span>
+        <p><strong>Drop your MP4 here</strong> or click to browse</p>
+        <p class="size-hint">Supports MP4, MOV, AVI, MKV · Processed locally in your browser</p>
+      </div>
+      <div class="file-info" id="file-info" style="display:none">
+        <span class="fi-icon">📹</span>
+        <div>
+          <div class="fi-name" id="fi-name">—</div>
+          <div class="fi-size" id="fi-size">—</div>
+        </div>
+        <button class="fi-remove" id="fi-remove" title="Remove">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 — Settings -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step">2</div>
+      <h2>Transcode Settings</h2>
+    </div>
+    <div class="card-body">
+      <div class="settings-grid">
+        <div class="field">
+          <label>Resolution</label>
+          <select id="res">
+            <option value="original">Original</option>
+            <option value="1920x1080">1080p — 1920×1080</option>
+            <option value="1280x720" selected>720p — 1280×720</option>
+            <option value="854x480">480p — 854×480</option>
+            <option value="640x360">360p — 640×360</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Video Bitrate</label>
+          <select id="vbitrate">
+            <option value="4000k">4 Mbps (High)</option>
+            <option value="2500k" selected>2.5 Mbps (Standard)</option>
+            <option value="1500k">1.5 Mbps (Medium)</option>
+            <option value="800k">800 Kbps (Low)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Audio Bitrate</label>
+          <select id="abitrate">
+            <option value="192k">192 Kbps</option>
+            <option value="128k" selected>128 Kbps</option>
+            <option value="96k">96 Kbps</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Segment Duration</label>
+          <select id="segdur">
+            <option value="2">2 seconds</option>
+            <option value="4" selected>4 seconds</option>
+            <option value="6">6 seconds</option>
+            <option value="10">10 seconds</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Codec</label>
+          <select id="codec">
+            <option value="libx264" selected>H.264 (libx264)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Output Prefix</label>
+          <input type="text" id="prefix" value="stream" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 10px;border-radius:6px;outline:none;" placeholder="stream"/>
+        </div>
+      </div>
+
+      <div class="ffmpeg-status" id="ffmpeg-status">
+        <div class="dot"></div>
+        <span id="ffmpeg-status-text">Loading FFmpeg.wasm engine…</span>
+      </div>
+
+      <button class="btn-convert" id="btn-convert" disabled>
+        <div class="spinner" id="spinner"></div>
+        <span id="btn-label">⚡ Start Transcoding</span>
+      </button>
+
+      <div class="progress-wrap" id="progress-wrap">
+        <div class="progress-label">
+          <span id="prog-status">Processing…</span>
+          <span id="prog-pct">0%</span>
+        </div>
+        <div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+        <div class="log-box" id="log-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3 — Output -->
+  <div class="card output-section" id="output-section">
+    <div class="card-header">
+      <div class="step">3</div>
+      <h2>Download HLS Bundle</h2>
+    </div>
+    <div class="card-body">
+      <div id="status-banner"></div>
+      <div class="output-files" id="output-files"></div>
+      <button class="btn-dl-all" id="btn-dl-all">⬇ Download All Files as ZIP</button>
+      <div class="info-row" id="info-row"></div>
+    </div>
+  </div>
+
+  <!-- How it works -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step">?</div>
+      <h2>How It Works</h2>
+    </div>
+    <div class="card-body">
+      <div class="how-grid">
+        <div class="how-item">
+          <div class="hi-num">01</div>
+          <h3>Browser-Based</h3>
+          <p>FFmpeg.wasm runs entirely in your browser. No server, no upload, 100% private.</p>
+        </div>
+        <div class="how-item">
+          <div class="hi-num">02</div>
+          <h3>HLS Segments</h3>
+          <p>Your video is split into <code>.ts</code> chunks with a <code>.m3u8</code> playlist index.</p>
+        </div>
+        <div class="how-item">
+          <div class="hi-num">03</div>
+          <h3>Host on GitHub</h3>
+          <p>Push the output folder to a GitHub repo and enable GitHub Pages to stream it.</p>
+        </div>
+        <div class="how-item">
+          <div class="hi-num">04</div>
+          <h3>Play Anywhere</h3>
+          <p>Use hls.js or Video.js on any webpage to play your HLS stream on all browsers.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <span>HLS TRANSCODER · BROWSER-BASED · NO SERVER</span>
+  <span>FFmpeg.wasm · <a href="https://github.com/ffmpegwasm/ffmpeg.wasm" target="_blank">ffmpeg.wasm</a></span>
+</footer>
+
+<!-- JSZip for bundling -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script type="module">
+// ── FFmpeg.wasm v0.12 (ESM via CDN) ──────────────────────────────────────────
+import { FFmpeg } from 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js';
+import { fetchFile, toBlobURL } from 'https://unpkg.com/@ffmpeg/util@0.12.1/dist/esm/index.js';
+
+// ── DOM refs ─────────────────────────────────────────────────────────────────
+const dropzone    = document.getElementById('dropzone');
+const fileInput   = document.getElementById('file-input');
+const fileInfoEl  = document.getElementById('file-info');
+const fiName      = document.getElementById('fi-name');
+const fiSize      = document.getElementById('fi-size');
+const fiRemove    = document.getElementById('fi-remove');
+const resSelect   = document.getElementById('res');
+const vbitrateEl  = document.getElementById('vbitrate');
+const abitrateEl  = document.getElementById('abitrate');
+const segdurEl    = document.getElementById('segdur');
+const prefixEl    = document.getElementById('prefix');
+const btnConvert  = document.getElementById('btn-convert');
+const btnLabel    = document.getElementById('btn-label');
+const spinner     = document.getElementById('spinner');
+const progressWrap= document.getElementById('progress-wrap');
+const progressBar = document.getElementById('progress-bar');
+const progStatus  = document.getElementById('prog-status');
+const progPct     = document.getElementById('prog-pct');
+const logBox      = document.getElementById('log-box');
+const outputSec   = document.getElementById('output-section');
+const outputFiles = document.getElementById('output-files');
+const btnDlAll    = document.getElementById('btn-dl-all');
+const infoRow     = document.getElementById('info-row');
+const statusBanner= document.getElementById('status-banner');
+const ffmpegStatusEl = document.getElementById('ffmpeg-status');
+const ffmpegStatusText = document.getElementById('ffmpeg-status-text');
+
+// ── State ────────────────────────────────────────────────────────────────────
+let selectedFile = null;
+let ffmpeg = null;
+let ffmpegReady = false;
+let outputBlobs = [];  // {name, blob}
+
+// ── Load FFmpeg ──────────────────────────────────────────────────────────────
+async function loadFFmpeg() {
+  try {
+    ffmpeg = new FFmpeg();
+    ffmpeg.on('log', ({ message }) => addLog(message, 'log-info'));
+    ffmpeg.on('progress', ({ progress }) => setProgress(Math.round(progress * 100)));
+
+    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+    await ffmpeg.load({
+      coreURL:   await toBlobURL(`${baseURL}/ffmpeg-core.js`,   'text/javascript'),
+      wasmURL:   await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+    });
+
+    ffmpegReady = true;
+    ffmpegStatusEl.classList.add('ready');
+    ffmpegStatusText.textContent = 'FFmpeg engine ready';
+    updateConvertBtn();
+  } catch(e) {
+    ffmpegStatusEl.classList.add('err');
+    ffmpegStatusText.textContent = 'Failed to load FFmpeg: ' + e.message;
+    addLog('Failed to load FFmpeg: ' + e.message, 'log-err');
+  }
+}
+
+// ── File handling ─────────────────────────────────────────────────────────────
+function setFile(file) {
+  if (!file) return;
+  selectedFile = file;
+  fiName.textContent = file.name;
+  fiSize.textContent = formatBytes(file.size) + ' · ' + file.type;
+  fileInfoEl.style.display = 'flex';
+  updateConvertBtn();
+}
+
+function clearFile() {
+  selectedFile = null;
+  fileInput.value = '';
+  fileInfoEl.style.display = 'none';
+  updateConvertBtn();
+}
+
+function updateConvertBtn() {
+  btnConvert.disabled = !(selectedFile && ffmpegReady);
+}
+
+fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
+fiRemove.addEventListener('click', clearFile);
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) setFile(f);
+});
+
+// ── Convert ───────────────────────────────────────────────────────────────────
+btnConvert.addEventListener('click', transcode);
+
+async function transcode() {
+  if (!selectedFile || !ffmpegReady) return;
+
+  // UI: busy state
+  btnConvert.disabled = true;
+  spinner.style.display = 'block';
+  btnLabel.textContent = 'Transcoding…';
+  progressWrap.classList.add('visible');
+  outputSec.classList.remove('visible');
+  outputBlobs = [];
+  logBox.innerHTML = '';
+  setProgress(0);
+  progStatus.textContent = 'Writing input file…';
+
+  const prefix = (prefixEl.value.trim() || 'stream').replace(/[^a-z0-9_-]/gi,'_');
+  const m3u8   = prefix + '.m3u8';
+  const segPat = prefix + '%03d.ts';
+  const segDur = segdurEl.value;
+  const vb     = vbitrateEl.value;
+  const ab     = abitrateEl.value;
+  const res    = resSelect.value;
+
+  try {
+    addLog('Writing input to virtual FS…', 'log-info');
+    await ffmpeg.writeFile('input.mp4', await fetchFile(selectedFile));
+    addLog('Input written. Building FFmpeg command…', 'log-info');
+
+    // Build args
+    const args = ['-i', 'input.mp4'];
+
+    // Scale
+    if (res !== 'original') {
+      const [w, h] = res.split('x');
+      args.push('-vf', `scale=${w}:${h}`);
+    }
+
+    args.push(
+      '-c:v', 'libx264',
+      '-preset', 'fast',
+      '-crf', '23',
+      '-b:v', vb,
+      '-maxrate', vb,
+      '-bufsize', (parseInt(vb)*2) + 'k',
+      '-c:a', 'aac',
+      '-b:a', ab,
+      '-ar', '44100',
+      '-ac', '2',
+      '-f', 'hls',
+      '-hls_time', segDur,
+      '-hls_list_size', '0',
+      '-hls_segment_filename', segPat,
+      '-hls_flags', 'independent_segments',
+      m3u8
+    );
+
+    addLog('Running: ffmpeg ' + args.join(' '), 'log-info');
+    progStatus.textContent = 'Transcoding (this may take a while)…';
+
+    await ffmpeg.exec(args);
+
+    progStatus.textContent = 'Collecting output files…';
+    setProgress(100);
+    addLog('Transcode complete! Reading output files…', 'log-ok');
+
+    // List all files in FS
+    const fsFiles = await ffmpeg.listDir('/');
+    const outNames = fsFiles
+      .filter(f => !f.isDir)
+      .map(f => f.name)
+      .filter(n => n.endsWith('.m3u8') || n.endsWith('.ts'));
+
+    if (outNames.length === 0) throw new Error('No output files found. Check FFmpeg logs.');
+
+    for (const name of outNames) {
+      const data = await ffmpeg.readFile(name);
+      const mime = name.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : 'video/MP2T';
+      const blob = new Blob([data.buffer], { type: mime });
+      outputBlobs.push({ name, blob });
+      addLog(`✔ ${name} (${formatBytes(blob.size)})`, 'log-ok');
+    }
+
+    showOutput(prefix);
+  } catch(err) {
+    addLog('ERROR: ' + err.message, 'log-err');
+    progStatus.textContent = 'Failed — see log below';
+    statusBanner.innerHTML = `<div class="status-msg error">❌ ${err.message}</div>`;
+    outputSec.classList.add('visible');
+    outputFiles.innerHTML = '';
+    infoRow.innerHTML = '';
+  } finally {
+    btnConvert.disabled = false;
+    spinner.style.display = 'none';
+    btnLabel.textContent = '⚡ Start Transcoding';
+    // cleanup FS
+    try { await ffmpeg.deleteFile('input.mp4'); } catch(e){}
+  }
+}
+
+// ── Show output ───────────────────────────────────────────────────────────────
+function showOutput(prefix) {
+  outputSec.classList.add('visible');
+  outputFiles.innerHTML = '';
+  infoRow.innerHTML = '';
+
+  const m3u8Files  = outputBlobs.filter(f => f.name.endsWith('.m3u8'));
+  const tsFiles    = outputBlobs.filter(f => f.name.endsWith('.ts'));
+  const totalBytes = outputBlobs.reduce((a,b) => a + b.blob.size, 0);
+
+  statusBanner.innerHTML = `<div class="status-msg success">✅ Conversion complete — ${outputBlobs.length} files generated</div>`;
+
+  // Show m3u8 first
+  for (const f of [...m3u8Files, ...tsFiles]) {
+    const icon = f.name.endsWith('.m3u8') ? '📋' : '🎞';
+    const el = document.createElement('div');
+    el.className = 'out-file';
+    el.innerHTML = `
+      <span class="of-icon">${icon}</span>
+      <div>
+        <div class="of-name">${f.name}</div>
+        <div class="of-size">${formatBytes(f.blob.size)}</div>
+      </div>
+      <button class="btn-dl" data-name="${f.name}">↓ DL</button>
+    `;
+    el.querySelector('.btn-dl').addEventListener('click', () => downloadBlob(f.blob, f.name));
+    outputFiles.appendChild(el);
+  }
+
+  // Info chips
+  infoRow.innerHTML = `
+    <div class="info-chip"><span>FILES</span> ${outputBlobs.length}</div>
+    <div class="info-chip"><span>SEGMENTS</span> ${tsFiles.length}</div>
+    <div class="info-chip"><span>TOTAL SIZE</span> ${formatBytes(totalBytes)}</div>
+    <div class="info-chip"><span>FORMAT</span> HLS / m3u8</div>
+  `;
+}
+
+// ── Download all as ZIP ────────────────────────────────────────────────────────
+btnDlAll.addEventListener('click', async () => {
+  if (!outputBlobs.length) return;
+  btnDlAll.textContent = '⏳ Zipping…';
+  btnDlAll.disabled = true;
+  const zip = new JSZip();
+  const folder = zip.folder('hls_output');
+  for (const { name, blob } of outputBlobs) {
+    folder.file(name, blob);
+  }
+  // Add a sample HTML player
+  folder.file('player.html', playerHTML(outputBlobs.find(f=>f.name.endsWith('.m3u8'))?.name || 'stream.m3u8'));
+
+  const content = await zip.generateAsync({ type: 'blob' });
+  downloadBlob(content, 'hls_output.zip');
+  btnDlAll.textContent = '⬇ Download All Files as ZIP';
+  btnDlAll.disabled = false;
+});
+
+function playerHTML(m3u8Name) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HLS Player</title>
+<style>
+  body{margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+  video{max-width:100%;max-height:100vh;border-radius:8px;}
+</style>
+</head>
+<body>
+<video id="video" controls autoplay muted></video>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js"><\/script>
+<script>
+  const src = './${m3u8Name}';
+  const v = document.getElementById('video');
+  if (Hls.isSupported()) {
+    const hls = new Hls();
+    hls.loadSource(src);
+    hls.attachMedia(v);
+  } else if (v.canPlayType('application/vnd.apple.mpegurl')) {
+    v.src = src;
+  }
+<\/script>
+</body>
+</html>`;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  return (b/1024/1024).toFixed(2) + ' MB';
+}
+
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+function addLog(msg, cls='log-info') {
+  const span = document.createElement('span');
+  span.className = cls;
+  span.textContent = msg;
+  logBox.appendChild(span);
+  logBox.scrollTop = logBox.scrollHeight;
+}
+
+function setProgress(pct) {
+  progressBar.style.width = pct + '%';
+  progPct.textContent = pct + '%';
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+loadFFmpeg();
+</script>
+</body>
+</html>
