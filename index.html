@@ -34,7 +34,6 @@
     overflow-x: hidden;
   }
 
-  /* Grid background */
   body::before {
     content: '';
     position: fixed;
@@ -137,6 +136,18 @@
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--text);
+    flex: 1;
+  }
+  .engine-badge {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(0,229,255,.07);
+    border: 1px solid rgba(0,229,255,.2);
+    color: var(--accent);
   }
 
   .card-body { padding: 24px 20px; }
@@ -158,11 +169,7 @@
   .dropzone input[type=file] {
     position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;
   }
-  .dropzone-icon {
-    font-size: 36px;
-    margin-bottom: 12px;
-    display: block;
-  }
+  .dropzone-icon { font-size: 36px; margin-bottom: 12px; display: block; }
   .dropzone p { color: var(--muted); font-size: 14px; }
   .dropzone strong { color: var(--text); font-weight: 500; }
   .dropzone .size-hint { font-size: 12px; margin-top: 6px; }
@@ -219,7 +226,7 @@
     color: var(--muted);
     margin-bottom: 6px;
   }
-  .field select, .field input[type=number] {
+  .field select, .field input[type=text], .field input[type=number] {
     width: 100%;
     background: var(--surface2);
     border: 1px solid var(--border);
@@ -233,9 +240,7 @@
     -webkit-appearance: none;
     transition: border-color .2s;
   }
-  .field select:focus, .field input[type=number]:focus {
-    border-color: var(--accent);
-  }
+  .field select:focus, .field input:focus { border-color: var(--accent); }
   .field select option { background: var(--surface2); }
 
   /* Convert button */
@@ -278,7 +283,6 @@
     color: var(--muted);
     margin-bottom: 8px;
   }
-  .progress-label #prog-pct { color: var(--accent); }
 
   .progress-track {
     height: 4px;
@@ -312,11 +316,11 @@
   .log-box .log-ok { color: var(--success); }
   .log-box .log-err { color: var(--error); }
   .log-box .log-warn { color: var(--warn); }
+  .log-box .log-dim { color: #3a3a50; }
 
   /* Output */
   .output-section { display: none; }
   .output-section.visible { display: block; }
-
   .output-files { display: flex; flex-direction: column; gap: 10px; }
 
   .out-file {
@@ -398,7 +402,8 @@
     padding: 5px 10px;
     border-radius: 5px;
   }
-  .info-chip span:first-child { color: var(--accent); }
+  .info-chip .chip-label { color: var(--accent); }
+  .info-chip .chip-label2 { color: var(--accent2); }
 
   .status-msg {
     display: flex;
@@ -410,53 +415,10 @@
     margin-bottom: 14px;
   }
   .status-msg.success { background: rgba(0,214,143,.08); border: 1px solid rgba(0,214,143,.25); color: var(--success); }
-  .status-msg.error { background: rgba(255,77,106,.08); border: 1px solid rgba(255,77,106,.25); color: var(--error); }
+  .status-msg.error   { background: rgba(255,77,106,.08); border: 1px solid rgba(255,77,106,.25); color: var(--error); }
+  .status-msg.warn    { background: rgba(255,181,71,.08);  border: 1px solid rgba(255,181,71,.25);  color: var(--warn); }
 
-  /* How it works */
-  .how-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 14px;
-  }
-  .how-item {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
-  }
-  .how-item .hi-num {
-    font-family: var(--mono);
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--accent);
-    opacity: .4;
-    margin-bottom: 6px;
-  }
-  .how-item h3 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-  .how-item p { font-size: 12px; color: var(--muted); line-height: 1.5; }
-
-  footer {
-    width: 100%;
-    max-width: 860px;
-    padding: 0 24px 32px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--muted);
-    position: relative;
-    z-index: 1;
-  }
-  footer a { color: var(--muted); text-decoration: none; }
-  footer a:hover { color: var(--accent); }
-
-  @media (max-width: 520px) {
-    .settings-grid { grid-template-columns: 1fr 1fr; }
-    .how-grid { grid-template-columns: 1fr 1fr; }
-  }
-
-  /* Loading ffmpeg */
+  /* FFmpeg status */
   .ffmpeg-status {
     display: flex;
     align-items: center;
@@ -472,9 +434,8 @@
     animation: pulse 1.5s infinite;
   }
   .ffmpeg-status.ready .dot { background: var(--success); animation: none; }
-  .ffmpeg-status.err .dot { background: var(--error); animation: none; }
+  .ffmpeg-status.err   .dot { background: var(--error);   animation: none; }
 
-  /* Spinner for button */
   @keyframes spin { to { transform: rotate(360deg); } }
   .spinner {
     width: 14px; height: 14px;
@@ -485,7 +446,7 @@
     display: none;
   }
 
-  /* ── HLS → MP4 Downloader ─────────────────────────────── */
+  /* ── HLS → MP4 Downloader ─────────────────────────── */
   .url-input-wrap {
     display: flex;
     gap: 10px;
@@ -502,9 +463,39 @@
     border-radius: 7px;
     outline: none;
     transition: border-color .2s;
+    appearance: none;
+    min-width: 0;
   }
-  .url-input-wrap input[type=text]:focus { border-color: var(--accent); }
-  .url-input-wrap input[type=text]::placeholder { color: var(--muted); }
+  .url-input-wrap input[type=text]:focus { border-color: var(--accent2); }
+  .url-input-wrap input[type=text]::placeholder { color: var(--muted); font-size: 11px; }
+
+  /* Mode tabs */
+  .mode-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .mode-tab {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--muted);
+    transition: all .15s;
+  }
+  .mode-tab.active {
+    background: rgba(124,58,237,.15);
+    border-color: rgba(124,58,237,.4);
+    color: #a78bfa;
+  }
+
   .btn-fetch {
     flex-shrink: 0;
     padding: 10px 18px;
@@ -522,6 +513,7 @@
     display: flex;
     align-items: center;
     gap: 7px;
+    white-space: nowrap;
   }
   .btn-fetch:hover:not(:disabled) {
     background: #8b4cf7;
@@ -530,48 +522,69 @@
   }
   .btn-fetch:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
 
-  .hls-preview {
-    margin-top: 14px;
-    display: none;
-  }
-  .hls-preview.visible { display: block; }
-  .hls-preview video {
-    width: 100%;
-    border-radius: 8px;
-    background: #000;
-    max-height: 260px;
-    display: block;
-    margin-bottom: 12px;
-  }
-  .hls-meta {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 14px;
-  }
-  .hls-meta .info-chip span:first-child { color: var(--accent2); }
+  /* Quality list */
+  .playlist-info { margin-top: 14px; display: none; }
+  .playlist-info.visible { display: block; }
 
-  .dl-progress-wrap { margin-top: 12px; display: none; }
-  .dl-progress-wrap.visible { display: block; }
-  .dl-log-box {
+  .quality-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .quality-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 10px 12px;
-    margin-top: 10px;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--muted);
-    height: 80px;
-    overflow-y: auto;
-    line-height: 1.6;
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all .15s;
   }
-  .dl-log-box span { display: block; }
+  .quality-item:hover, .quality-item.selected {
+    border-color: rgba(124,58,237,.5);
+    background: rgba(124,58,237,.07);
+  }
+  .quality-item .qi-res {
+    font-family: var(--mono); font-size: 13px; font-weight: 700;
+    color: #a78bfa; min-width: 60px;
+  }
+  .quality-item .qi-info { font-size: 12px; color: var(--muted); flex: 1; }
+  .quality-item .qi-check {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; transition: all .15s;
+  }
+  .quality-item.selected .qi-check { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+
+  /* Seg info box */
+  .seg-info-box {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 14px; margin-top: 12px;
+  }
+  .seg-info-box .si-row {
+    display: flex; justify-content: space-between;
+    font-family: var(--mono); font-size: 11px; color: var(--muted); padding: 3px 0;
+  }
+  .seg-info-box .si-row span:last-child { color: var(--text); }
+
+  /* Engine row */
+  .engine-row {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    margin-top: 10px;
+  }
+  .engine-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--warn); animation: pulse 1.5s infinite; flex-shrink: 0;
+  }
+  .engine-dot.ready { background: var(--success); animation: none; }
+  .engine-dot.err   { background: var(--error);   animation: none; }
+
+  /* Download MP4 button */
   .btn-dl-mp4 {
     width: 100%;
-    margin-top: 12px;
-    padding: 13px;
-    background: var(--accent2);
+    margin-top: 14px;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--accent2), #4f46e5);
     color: #fff;
     border: none;
     border-radius: 8px;
@@ -586,14 +599,21 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
+    position: relative;
+    overflow: hidden;
   }
-  .btn-dl-mp4:hover:not(:disabled) {
-    background: #8b4cf7;
-    transform: translateY(-1px);
-    box-shadow: 0 8px 24px rgba(124,58,237,.35);
+  .btn-dl-mp4::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, #8b4cf7, #6366f1);
+    opacity: 0; transition: opacity .2s;
   }
+  .btn-dl-mp4:hover:not(:disabled)::before { opacity: 1; }
+  .btn-dl-mp4:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(124,58,237,.5); }
   .btn-dl-mp4:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
-  .btn-dl-mp4 .spinner2 {
+  .btn-dl-mp4 > * { position: relative; z-index: 1; }
+
+  .spinner2 {
     width: 14px; height: 14px;
     border: 2px solid rgba(255,255,255,.3);
     border-top-color: #fff;
@@ -601,17 +621,48 @@
     animation: spin .7s linear infinite;
     display: none;
   }
+
+  /* DL Progress */
+  .dl-progress-wrap { margin-top: 12px; display: none; }
+  .dl-progress-wrap.visible { display: block; }
+  .dl-log-box {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px 12px; margin-top: 10px;
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    height: 90px; overflow-y: auto; line-height: 1.6;
+  }
+  .dl-log-box span { display: block; }
+
+  footer {
+    width: 100%; max-width: 860px;
+    padding: 0 24px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    position: relative; z-index: 1;
+  }
+  footer a { color: var(--muted); text-decoration: none; }
+  footer a:hover { color: var(--accent); }
+
+  @media (max-width: 520px) {
+    .settings-grid { grid-template-columns: 1fr 1fr; }
+    .url-input-wrap { flex-direction: column; }
+    .btn-fetch { width: 100%; justify-content: center; }
+  }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="badge">MP4 → HLS Transcoder</div>
+  <div class="badge">MP4 ↔ HLS Toolkit</div>
   <h1>Convert <span>MP4</span><br>to HLS Stream</h1>
-  <p class="subtitle">Browser-based transcoder. Your video never leaves your device — everything runs locally using FFmpeg.wasm. Download a ready-to-host HLS bundle for GitHub or CDN.</p>
+  <p class="subtitle">Browser-based toolkit. Your video never leaves your device — everything runs locally using FFmpeg.wasm. Transcode MP4 → HLS, or download any HLS stream as MP4.</p>
 </header>
 
 <main>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- SECTION A: MP4 → HLS TRANSCODER                        -->
+  <!-- ═══════════════════════════════════════════════════════ -->
 
   <!-- STEP 1 — Upload -->
   <div class="card">
@@ -689,7 +740,7 @@
         </div>
         <div class="field">
           <label>Output Prefix</label>
-          <input type="text" id="prefix" value="stream" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 10px;border-radius:6px;outline:none;" placeholder="stream"/>
+          <input type="text" id="prefix" value="stream" placeholder="stream"/>
         </div>
       </div>
 
@@ -706,7 +757,7 @@
       <div class="progress-wrap" id="progress-wrap">
         <div class="progress-label">
           <span id="prog-status">Processing…</span>
-          <span id="prog-pct">0%</span>
+          <span id="prog-pct" style="color:var(--accent);">0%</span>
         </div>
         <div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
         <div class="log-box" id="log-box"></div>
@@ -729,34 +780,57 @@
   </div>
 
 
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- SECTION B: HLS → MP4 DOWNLOADER (FFmpeg remux)         -->
+  <!-- ═══════════════════════════════════════════════════════ -->
 
-
-  <!-- HLS → MP4 Downloader -->
   <div class="card">
     <div class="card-header">
       <div class="step" style="background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.4);color:#a78bfa;">↓</div>
-      <h2 style="color:var(--text);">HLS Stream → MP4 Download</h2>
+      <h2>HLS Stream → MP4 Download</h2>
+      <span class="engine-badge">FFmpeg Remux</span>
     </div>
     <div class="card-body">
+
+      <!-- Mode tabs -->
+      <div class="mode-tabs">
+        <button class="mode-tab active" data-mode="ffmpeg">🔧 FFmpeg Remux (Real MP4)</button>
+        <button class="mode-tab" data-mode="concat">⚡ Fast Concat (Raw TS)</button>
+      </div>
+      <p id="dl-mode-desc" style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:14px;">
+        Downloads all segments → merges → runs <code style="color:var(--accent)">ffmpeg -i input.ts -c copy output.mp4</code> in your browser
+      </p>
+
       <div class="url-input-wrap">
         <input type="text" id="hls-url-input"
           placeholder="https://example.com/video/playlist.m3u8"
           spellcheck="false" autocomplete="off"/>
         <button class="btn-fetch" id="btn-fetch-hls">
-          <span>▶ Load</span>
+          <span>▶ Analyse</span>
         </button>
       </div>
       <p style="font-size:11px;color:var(--muted);margin-top:8px;font-family:var(--mono);">
-        Paste any public .m3u8 URL · Preview plays in browser · Download converts to MP4
+        Paste any public .m3u8 URL · Supports master playlists (multi-quality) · Converts to real MP4
       </p>
 
-      <div class="hls-preview" id="hls-preview">
-        <video id="hls-video" controls muted playsinline></video>
-        <div class="hls-meta" id="hls-meta"></div>
-        <button class="btn-dl-mp4" id="btn-dl-mp4">
+      <div id="dl-msg-area"></div>
+
+      <!-- Playlist info (shown after Analyse) -->
+      <div class="playlist-info" id="hls-playlist-info">
+        <div id="dl-pl-chips" class="info-row" style="margin-top:0;margin-bottom:10px;"></div>
+        <div id="dl-quality-area"></div>
+        <div id="dl-seg-info"></div>
+
+        <div class="engine-row">
+          <div class="engine-dot" id="dl-engine-dot"></div>
+          <span id="dl-engine-txt">Loading FFmpeg engine…</span>
+        </div>
+
+        <button class="btn-dl-mp4" id="btn-dl-mp4" disabled>
           <div class="spinner2" id="spinner2"></div>
           <span id="dl-mp4-label">⬇ Download as MP4</span>
         </button>
+
         <div class="dl-progress-wrap" id="dl-progress-wrap">
           <div class="progress-label">
             <span id="dl-prog-status">Downloading segments…</span>
@@ -768,6 +842,7 @@
           <div class="dl-log-box" id="dl-log-box"></div>
         </div>
       </div>
+
     </div>
   </div>
 
@@ -782,70 +857,85 @@
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
 <!-- JSZip for bundling -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<!-- FFmpeg.wasm 0.11 — UMD build, single-thread, no Worker/SharedArrayBuffer required -->
+<!-- FFmpeg.wasm 0.11 UMD — single-thread, no SharedArrayBuffer required -->
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 
 <script>
-// ── FFmpeg.wasm v0.11 UMD ─────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// SHARED: FFmpeg.wasm instance (used by both MP4→HLS and HLS→MP4)
+// ═══════════════════════════════════════════════════════════════════════════════
 const { createFFmpeg, fetchFile } = FFmpeg;
 
-// ── DOM refs ──────────────────────────────────────────────────────────────────
-const dropzone       = document.getElementById('dropzone');
-const fileInput      = document.getElementById('file-input');
-const fileInfoEl     = document.getElementById('file-info');
-const fiName         = document.getElementById('fi-name');
-const fiSize         = document.getElementById('fi-size');
-const fiRemove       = document.getElementById('fi-remove');
-const resSelect      = document.getElementById('res');
-const vbitrateEl     = document.getElementById('vbitrate');
-const abitrateEl     = document.getElementById('abitrate');
-const segdurEl       = document.getElementById('segdur');
-const prefixEl       = document.getElementById('prefix');
-const btnConvert     = document.getElementById('btn-convert');
-const btnLabel       = document.getElementById('btn-label');
-const spinner        = document.getElementById('spinner');
-const progressWrap   = document.getElementById('progress-wrap');
-const progressBar    = document.getElementById('progress-bar');
-const progStatus     = document.getElementById('prog-status');
-const progPct        = document.getElementById('prog-pct');
-const logBox         = document.getElementById('log-box');
-const outputSec      = document.getElementById('output-section');
-const outputFiles    = document.getElementById('output-files');
-const btnDlAll       = document.getElementById('btn-dl-all');
-const infoRow        = document.getElementById('info-row');
-const statusBanner   = document.getElementById('status-banner');
-const ffmpegStatusEl   = document.getElementById('ffmpeg-status');
-const ffmpegStatusText = document.getElementById('ffmpeg-status-text');
+let ffmpeg      = null;
+let ffmpegReady = false;
 
-// ── State ─────────────────────────────────────────────────────────────────────
-let selectedFile = null;
-let ffmpeg       = null;
-let ffmpegReady  = false;
-let outputBlobs  = [];
-
-// ── Load FFmpeg ───────────────────────────────────────────────────────────────
 async function loadFFmpeg() {
   try {
     ffmpeg = createFFmpeg({
-      log: true,
-      // Use unpkg for @ffmpeg/core@0.11.0 — jsdelivr sometimes has stale cache
+      log: false,
       corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
-      progress: ({ ratio }) => setProgress(Math.round(ratio * 100)),
-      logger: ({ message }) => addLog(message, 'log-info'),
+      progress: ({ ratio }) => {
+        // Route progress to whichever section is active
+        const pct = Math.round(ratio * 100);
+        setProgress(pct);           // MP4→HLS bar
+        dlSetProgress(Math.min(75 + Math.round(ratio * 20), 95)); // HLS→MP4 remux phase
+      },
+      logger: ({ message }) => {
+        addLog(message, 'log-dim');  // MP4→HLS log
+      },
     });
     await ffmpeg.load();
     ffmpegReady = true;
+
+    // Update both status indicators
     ffmpegStatusEl.classList.add('ready');
     ffmpegStatusText.textContent = 'FFmpeg engine ready';
     updateConvertBtn();
+
+    dlEngineDot.classList.add('ready');
+    dlEngineTxt.textContent = 'FFmpeg engine ready ✓';
+    updateDlBtn();
   } catch(e) {
     ffmpegStatusEl.classList.add('err');
     ffmpegStatusText.textContent = 'Failed to load FFmpeg: ' + e.message;
-    addLog('Failed to load FFmpeg: ' + e.message, 'log-err');
+    dlEngineDot.classList.add('err');
+    dlEngineTxt.textContent = 'FFmpeg failed: ' + e.message;
   }
 }
 
-// ── File handling ─────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION A: MP4 → HLS TRANSCODER
+// ═══════════════════════════════════════════════════════════════════════════════
+const dropzone         = document.getElementById('dropzone');
+const fileInput        = document.getElementById('file-input');
+const fileInfoEl       = document.getElementById('file-info');
+const fiName           = document.getElementById('fi-name');
+const fiSize           = document.getElementById('fi-size');
+const fiRemove         = document.getElementById('fi-remove');
+const resSelect        = document.getElementById('res');
+const vbitrateEl       = document.getElementById('vbitrate');
+const abitrateEl       = document.getElementById('abitrate');
+const segdurEl         = document.getElementById('segdur');
+const prefixEl         = document.getElementById('prefix');
+const btnConvert       = document.getElementById('btn-convert');
+const btnLabel         = document.getElementById('btn-label');
+const spinner          = document.getElementById('spinner');
+const progressWrap     = document.getElementById('progress-wrap');
+const progressBar      = document.getElementById('progress-bar');
+const progStatus       = document.getElementById('prog-status');
+const progPct          = document.getElementById('prog-pct');
+const logBox           = document.getElementById('log-box');
+const outputSec        = document.getElementById('output-section');
+const outputFiles      = document.getElementById('output-files');
+const btnDlAll         = document.getElementById('btn-dl-all');
+const infoRow          = document.getElementById('info-row');
+const statusBanner     = document.getElementById('status-banner');
+const ffmpegStatusEl   = document.getElementById('ffmpeg-status');
+const ffmpegStatusText = document.getElementById('ffmpeg-status-text');
+
+let selectedFile = null;
+let outputBlobs  = [];
+
 function setFile(file) {
   if (!file) return;
   selectedFile = file;
@@ -873,7 +963,6 @@ dropzone.addEventListener('drop', e => {
   const f = e.dataTransfer.files[0]; if (f) setFile(f);
 });
 
-// ── Transcode ─────────────────────────────────────────────────────────────────
 btnConvert.addEventListener('click', transcode);
 
 async function transcode() {
@@ -896,6 +985,10 @@ async function transcode() {
   const vb     = vbitrateEl.value;
   const ab     = abitrateEl.value;
   const res    = resSelect.value;
+
+  // Re-attach logger for this section
+  ffmpeg.setLogger(({ message }) => addLog(message, 'log-info'));
+  ffmpeg.setProgress(({ ratio }) => setProgress(Math.round(ratio * 100)));
 
   try {
     addLog('Writing input to virtual FS…', 'log-info');
@@ -934,7 +1027,6 @@ async function transcode() {
     setProgress(100);
     addLog('Transcode complete! Reading output files…', 'log-ok');
 
-    // Read output files from FS
     const allFiles = ffmpeg.FS('readdir', '/');
     const outNames = allFiles.filter(n => n.endsWith('.m3u8') || n.endsWith('.ts'));
 
@@ -950,11 +1042,8 @@ async function transcode() {
 
     showOutput(prefix);
 
-    // Cleanup FS
     try { ffmpeg.FS('unlink', 'input.mp4'); } catch(e) {}
-    for (const { name } of outputBlobs) {
-      try { ffmpeg.FS('unlink', name); } catch(e) {}
-    }
+    for (const { name } of outputBlobs) { try { ffmpeg.FS('unlink', name); } catch(e) {} }
 
   } catch(err) {
     addLog('ERROR: ' + err.message, 'log-err');
@@ -969,7 +1058,6 @@ async function transcode() {
   }
 }
 
-// ── Show output ───────────────────────────────────────────────────────────────
 function showOutput(prefix) {
   outputSec.classList.add('visible');
   outputFiles.innerHTML = '';
@@ -997,13 +1085,12 @@ function showOutput(prefix) {
   }
 
   infoRow.innerHTML = `
-    <div class="info-chip"><span>FILES</span> ${outputBlobs.length}</div>
-    <div class="info-chip"><span>SEGMENTS</span> ${tsFiles.length}</div>
-    <div class="info-chip"><span>TOTAL SIZE</span> ${formatBytes(totalBytes)}</div>
-    <div class="info-chip"><span>FORMAT</span> HLS / m3u8</div>`;
+    <div class="info-chip"><span class="chip-label">FILES</span> ${outputBlobs.length}</div>
+    <div class="info-chip"><span class="chip-label">SEGMENTS</span> ${tsFiles.length}</div>
+    <div class="info-chip"><span class="chip-label">TOTAL SIZE</span> ${formatBytes(totalBytes)}</div>
+    <div class="info-chip"><span class="chip-label">FORMAT</span> HLS / m3u8</div>`;
 }
 
-// ── ZIP download ──────────────────────────────────────────────────────────────
 btnDlAll.addEventListener('click', async () => {
   if (!outputBlobs.length) return;
   btnDlAll.textContent = '⏳ Zipping…';
@@ -1032,17 +1119,9 @@ function playerHTML(m3u8Name) {
 <\/script></body></html>`;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function formatBytes(b) {
-  if (b < 1024) return b + ' B';
-  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
-  return (b/1048576).toFixed(2) + ' MB';
-}
-function downloadBlob(blob, name) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = name; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
+function setProgress(pct) {
+  progressBar.style.width = pct + '%';
+  progPct.textContent = pct + '%';
 }
 function addLog(msg, cls='log-info') {
   const span = document.createElement('span');
@@ -1050,23 +1129,20 @@ function addLog(msg, cls='log-info') {
   logBox.appendChild(span);
   logBox.scrollTop = logBox.scrollHeight;
 }
-function setProgress(pct) {
-  progressBar.style.width = pct + '%';
-  progPct.textContent = pct + '%';
-}
 
-// ── Boot ──────────────────────────────────────────────────────────────────────
-loadFFmpeg();
-
-
-// ══════════════════════════════════════════════════════════════════════════════
-// HLS → MP4 DOWNLOADER
-// ══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION B: HLS → MP4 DOWNLOADER
+// Replicates: ffmpeg -i "master.m3u8" -c copy video.mp4
+// ═══════════════════════════════════════════════════════════════════════════════
 const hlsUrlInput    = document.getElementById('hls-url-input');
 const btnFetchHls    = document.getElementById('btn-fetch-hls');
-const hlsPreview     = document.getElementById('hls-preview');
-const hlsVideo       = document.getElementById('hls-video');
-const hlsMeta        = document.getElementById('hls-meta');
+const hlsPlaylistInfo= document.getElementById('hls-playlist-info');
+const dlMsgArea      = document.getElementById('dl-msg-area');
+const dlPlChips      = document.getElementById('dl-pl-chips');
+const dlQualityArea  = document.getElementById('dl-quality-area');
+const dlSegInfo      = document.getElementById('dl-seg-info');
+const dlEngineDot    = document.getElementById('dl-engine-dot');
+const dlEngineTxt    = document.getElementById('dl-engine-txt');
 const btnDlMp4       = document.getElementById('btn-dl-mp4');
 const dlMp4Label     = document.getElementById('dl-mp4-label');
 const spinner2       = document.getElementById('spinner2');
@@ -1075,247 +1151,374 @@ const dlProgressBar  = document.getElementById('dl-progress-bar');
 const dlProgStatus   = document.getElementById('dl-prog-status');
 const dlProgPct      = document.getElementById('dl-prog-pct');
 const dlLogBox       = document.getElementById('dl-log-box');
+const modeTabs       = document.querySelectorAll('.mode-tab');
+const dlModeDesc     = document.getElementById('dl-mode-desc');
 
-let hlsInstance = null;
-let currentM3u8Url = '';
-let parsedSegments = [];
+let dlMode         = 'ffmpeg'; // 'ffmpeg' | 'concat'
+let dlBusy         = false;
+let dlSegmentUrls  = [];
+let dlLevels       = [];
+let dlSelectedLevel= 0;
+let dlCurrentUrl   = '';
 
-function dlLog(msg, cls='log-info') {
+const modeDescs = {
+  ffmpeg: 'Downloads all segments → merges → runs <code style="color:var(--accent)">ffmpeg -i input.ts -c copy output.mp4</code> in your browser. Produces a proper MP4.',
+  concat: '⚡ Fast mode: downloads segments → merges raw bytes → saves as .mp4. Faster, no FFmpeg step. May need VLC if browser struggles.',
+};
+
+modeTabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    modeTabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    dlMode = tab.dataset.mode;
+    dlModeDesc.innerHTML = modeDescs[dlMode];
+    updateDlBtn();
+  });
+});
+
+function updateDlBtn() {
+  btnDlMp4.disabled = !(dlSegmentUrls.length > 0 && (dlMode === 'concat' || ffmpegReady) && !dlBusy);
+}
+
+function dlLog(msg, cls='') {
   const s = document.createElement('span');
-  s.className = cls; s.textContent = msg;
+  if (cls) s.className = cls; s.textContent = msg;
   dlLogBox.appendChild(s);
   dlLogBox.scrollTop = dlLogBox.scrollHeight;
 }
-function dlSetProgress(pct) {
+function dlSetProgress(pct, status) {
   dlProgressBar.style.width = pct + '%';
   dlProgPct.textContent = pct + '%';
+  if (status) dlProgStatus.textContent = status;
+}
+function showDlMsg(msg, type='') {
+  dlMsgArea.innerHTML = `<div class="status-msg ${type}" style="margin-top:10px;">${msg}</div>`;
 }
 
-// ── Load & Preview ────────────────────────────────────────────────────────────
-btnFetchHls.addEventListener('click', loadHlsStream);
-hlsUrlInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadHlsStream(); });
+// ── Analyse button ────────────────────────────────────────────────────────────
+btnFetchHls.addEventListener('click', analyseHls);
+hlsUrlInput.addEventListener('keydown', e => { if (e.key === 'Enter') analyseHls(); });
 
-// ── Proxy: our own Vercel serverless function (/api/proxy) ──────────────────
-// This bypasses CDN CORS restrictions by fetching server-side
-function proxyUrl(url) {
-  return '/api/proxy?url=' + encodeURIComponent(url);
-}
-
-function showHlsError(msg) {
-  hlsPreview.classList.remove('visible');
-  // show inline error instead of alert
-  const existing = document.getElementById('hls-error-msg');
-  if (existing) existing.remove();
-  const div = document.createElement('div');
-  div.id = 'hls-error-msg';
-  div.className = 'status-msg error';
-  div.style.marginTop = '12px';
-  div.innerHTML = `❌ ${msg}`;
-  document.querySelector('.url-input-wrap').after(div);
-  setTimeout(() => div.remove(), 8000);
-}
-
-async function loadHlsStream() {
+async function analyseHls() {
   const url = hlsUrlInput.value.trim();
   if (!url) return;
-  if (!url.includes('.m3u8') && !url.includes('m3u')) {
-    showHlsError('Please enter a valid .m3u8 URL');
-    return;
+  if (!url.match(/\.(m3u8|m3u)/i) && !url.includes('m3u')) {
+    showDlMsg('❌ Please paste a valid .m3u8 URL', 'error'); return;
   }
+  dlMsgArea.innerHTML = '';
+  hlsPlaylistInfo.classList.remove('visible');
+  dlPlChips.innerHTML = '';
+  dlQualityArea.innerHTML = '';
+  dlSegInfo.innerHTML = '';
+  dlSegmentUrls = [];
+  dlLevels = [];
+  dlCurrentUrl = url;
 
-  // Remove any previous error
-  document.getElementById('hls-error-msg')?.remove();
-
-  currentM3u8Url = url;
-  parsedSegments = [];
   btnFetchHls.disabled = true;
-  btnFetchHls.querySelector('span').textContent = '⏳ Loading…';
-  if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-
-  // Try proxy first (rewrites all segment URLs), then direct
-  let loaded = false;
-  const attempts = [
-    proxyUrl(url),  // proxy first — rewrites m3u8 so all segments also go through proxy
-    url,            // direct fallback for open CDNs
-  ];
-
-  for (const src of attempts) {
-    try {
-      const ok = await tryLoadHls(src, url);
-      if (ok) { loaded = true; break; }
-    } catch(e) { console.warn('HLS attempt failed:', src, e.message); }
-  }
-
-  if (!loaded) {
-    btnFetchHls.disabled = false;
-    btnFetchHls.querySelector('span').textContent = '▶ Load';
-    showHlsError('CORS blocked: This CDN restricts cross-origin access. The download button will still attempt to fetch segments directly.');
-    // Still show the download button so user can try
-    hlsMeta.innerHTML = `<div class="info-chip"><span>URL</span> ${url.split('/').pop()}</div><div class="info-chip" style="color:var(--warn)"><span>⚠</span> Preview blocked by CORS</div>`;
-    hlsPreview.classList.add('visible');
-  }
-}
-
-function tryLoadHls(src, originalUrl) {
-  return new Promise((resolve, reject) => {
-    const config = {
-      enableWorker: false,
-      manifestLoadingTimeOut: 12000,
-      manifestLoadingMaxRetry: 0,
-      levelLoadingTimeOut: 12000,
-      fragLoadingTimeOut: 20000,
-    };
-    if (!Hls.isSupported()) {
-      hlsVideo.src = src;
-      hlsPreview.classList.add('visible');
-      btnFetchHls.disabled = false;
-      btnFetchHls.querySelector('span').textContent = '▶ Load';
-      resolve(true); return;
-    }
-    const hls = new Hls(config);
-    hls.loadSource(src);
-    hls.attachMedia(hlsVideo);
-    hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
-      hlsInstance = hls;
-      hlsMeta.innerHTML = `
-        <div class="info-chip"><span>LEVELS</span> ${data.levels.length}</div>
-        <div class="info-chip"><span>URL</span> ${originalUrl.split('/').pop()}</div>`;
-      hlsPreview.classList.add('visible');
-      btnFetchHls.disabled = false;
-      btnFetchHls.querySelector('span').textContent = '▶ Load';
-      hls.on(Hls.Events.FRAG_LOADED, (ev, d) => {
-        if (!parsedSegments.includes(d.frag.url)) parsedSegments.push(d.frag.url);
-      });
-      resolve(true);
-    });
-    hls.on(Hls.Events.ERROR, (event, data) => {
-      if (data.fatal) { hls.destroy(); reject(new Error(data.details)); }
-    });
-    setTimeout(() => { hls.destroy(); reject(new Error('timeout')); }, 13000);
-  });
-}
-
-// ── Download as MP4 ──────────────────────────────────────────────────────────
-btnDlMp4.addEventListener('click', downloadAsMp4);
-
-async function downloadAsMp4() {
-  const url = currentM3u8Url;
-  if (!url) return;
-
-  btnDlMp4.disabled = true;
-  spinner2.style.display = 'block';
-  dlMp4Label.textContent = 'Preparing…';
-  dlProgressWrap.classList.add('visible');
-  dlLogBox.innerHTML = '';
-  dlSetProgress(0);
+  btnFetchHls.querySelector('span').textContent = '⏳ Parsing…';
 
   try {
-    // Step 1: Parse the m3u8 to get all segment URLs
-    dlLog('Fetching playlist…', 'log-info');
-    dlProgStatus.textContent = 'Parsing playlist…';
+    const text = await fetchPlaylistText(url);
+    const base = url.substring(0, url.lastIndexOf('/') + 1);
 
-    const m3u8Text = await fetchText(url);
-    const baseUrl  = url.substring(0, url.lastIndexOf('/') + 1);
-    const segments = parseM3u8Segments(m3u8Text, baseUrl);
+    if (text.includes('#EXT-X-STREAM-INF')) {
+      // Master playlist — show quality picker
+      dlLevels = parseMasterPlaylist(text, base);
+      if (!dlLevels.length) throw new Error('Could not parse quality levels from master playlist.');
 
-    if (segments.length === 0) throw new Error('No segments found in playlist. It may be a master playlist — try a specific quality URL (e.g. /480p/video.m3u8)');
+      dlPlChips.innerHTML = `
+        <div class="info-chip"><span class="chip-label2">TYPE</span> Master Playlist</div>
+        <div class="info-chip"><span class="chip-label2">LEVELS</span> ${dlLevels.length} quality streams</div>`;
 
-    dlLog(`Found ${segments.length} segments`, 'log-ok');
-    dlProgStatus.textContent = `Downloading ${segments.length} segments…`;
+      dlQualityArea.innerHTML = '<div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em;">Select Quality</div>';
+      const list = document.createElement('div');
+      list.className = 'quality-list';
+      dlLevels.forEach((lv, i) => {
+        const item = document.createElement('div');
+        item.className = 'quality-item' + (i===0?' selected':'');
+        item.dataset.idx = i;
+        item.innerHTML = `
+          <div class="qi-res">${lv.res || '?'}</div>
+          <div class="qi-info">${lv.bandwidth ? Math.round(lv.bandwidth/1000)+' Kbps' : ''} · ${lv.url.split('/').pop()}</div>
+          <div class="qi-check">${i===0?'✓':''}</div>`;
+        item.addEventListener('click', () => selectDlLevel(i));
+        list.appendChild(item);
+      });
+      dlQualityArea.appendChild(list);
+      await loadDlStreamSegments(dlLevels[0].url);
+      dlSelectedLevel = 0;
 
-    // Step 2: Download all .ts segments
-    const tsBuffers = [];
-    for (let i = 0; i < segments.length; i++) {
-      const pct = Math.round((i / segments.length) * 85);
-      dlSetProgress(pct);
-      dlProgStatus.textContent = `Segment ${i+1} / ${segments.length}`;
-      dlLog(`Downloading segment ${i+1}/${segments.length}…`, 'log-info');
-      const buf = await fetchBinary(segments[i]);
-      tsBuffers.push(buf);
+    } else if (text.includes('#EXTINF') || text.includes('#EXT-X-TARGETDURATION')) {
+      // Direct stream playlist
+      dlSegmentUrls = parseSegmentUrls(text, base);
+      if (!dlSegmentUrls.length) throw new Error('No segments found. May be encrypted or use non-standard names.');
+      const dur = estimateDuration(text);
+      dlPlChips.innerHTML = `
+        <div class="info-chip"><span class="chip-label2">TYPE</span> Stream Playlist</div>
+        <div class="info-chip"><span class="chip-label2">SEGMENTS</span> ${dlSegmentUrls.length}</div>
+        ${dur ? `<div class="info-chip"><span class="chip-label2">~DURATION</span> ${dur}</div>` : ''}`;
+      showDlSegInfo(dlSegmentUrls.length, url);
+    } else {
+      throw new Error('Unrecognised playlist format. Make sure the URL returns an M3U8 file.');
     }
 
-    dlLog('All segments downloaded. Merging…', 'log-ok');
-    dlProgStatus.textContent = 'Merging segments…';
-    dlSetProgress(90);
+    hlsPlaylistInfo.classList.add('visible');
+    updateDlBtn();
+  } catch(err) {
+    showDlMsg('❌ ' + err.message, 'error');
+  } finally {
+    btnFetchHls.disabled = false;
+    btnFetchHls.querySelector('span').textContent = '▶ Analyse';
+  }
+}
 
-    // Step 3: Concatenate all TS buffers into one blob
-    // This produces a raw MPEG-TS file — rename to .ts or use as .mp4 (most players accept it)
-    const totalSize = tsBuffers.reduce((a, b) => a + b.byteLength, 0);
-    const merged = new Uint8Array(totalSize);
-    let offset = 0;
-    for (const buf of tsBuffers) {
-      merged.set(new Uint8Array(buf), offset);
-      offset += buf.byteLength;
+async function selectDlLevel(idx) {
+  document.querySelectorAll('.quality-item').forEach((el, i) => {
+    el.classList.toggle('selected', i === idx);
+    el.querySelector('.qi-check').textContent = i === idx ? '✓' : '';
+  });
+  dlSelectedLevel = idx;
+  await loadDlStreamSegments(dlLevels[idx].url);
+  updateDlBtn();
+}
+
+async function loadDlStreamSegments(url) {
+  dlSegInfo.innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--muted);">⏳ Loading stream segments…</div>';
+  try {
+    const text = await fetchPlaylistText(url);
+    const base = url.substring(0, url.lastIndexOf('/') + 1);
+    dlSegmentUrls = parseSegmentUrls(text, base);
+    const dur = estimateDuration(text);
+    showDlSegInfo(dlSegmentUrls.length, url, dur);
+  } catch(e) {
+    dlSegInfo.innerHTML = `<div class="status-msg error" style="margin-bottom:0;">❌ ${e.message}</div>`;
+    dlSegmentUrls = [];
+  }
+}
+
+function showDlSegInfo(count, url, duration) {
+  const name = url.split('/').pop().split('?')[0];
+  dlSegInfo.innerHTML = `
+    <div class="seg-info-box">
+      <div class="si-row"><span>Playlist</span><span>${name}</span></div>
+      <div class="si-row"><span>Segments</span><span>${count} × .ts</span></div>
+      ${duration ? `<div class="si-row"><span>Duration</span><span>~${duration}</span></div>` : ''}
+      <div class="si-row"><span>Method</span><span>${dlMode==='ffmpeg'?'FFmpeg remux → real MP4':'Raw concat → .mp4'}</span></div>
+    </div>`;
+}
+
+// ── Download button ───────────────────────────────────────────────────────────
+btnDlMp4.addEventListener('click', startDlDownload);
+
+async function startDlDownload() {
+  if (!dlSegmentUrls.length || dlBusy) return;
+  dlBusy = true;
+  btnDlMp4.disabled = true;
+  spinner2.style.display = 'block';
+  dlMp4Label.textContent = 'Working…';
+  dlProgressWrap.classList.add('visible');
+  dlLogBox.innerHTML = '';
+  dlMsgArea.innerHTML = '';
+  dlSetProgress(0, 'Starting…');
+
+  try {
+    if (dlMode === 'ffmpeg') {
+      await dlWithFFmpeg();
+    } else {
+      await dlWithConcat();
     }
-
-    dlSetProgress(100);
-    dlProgStatus.textContent = 'Done! Saving file…';
-    dlLog(`Merged ${formatBytes(totalSize)} · triggering download`, 'log-ok');
-
-    // Download — name it .ts (MPEG-TS container, plays in VLC/most players)
-    // We use .mp4 extension since most modern players handle TS segments fine
-    const filename = url.split('/').slice(-2,-1)[0] || 'video';
-    const blob = new Blob([merged], { type: 'video/mp4' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename + '.mp4';
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 8000);
-
-    dlLog('✔ Download started! File saved as .mp4', 'log-ok');
-
   } catch(err) {
     dlLog('ERROR: ' + err.message, 'log-err');
-    dlProgStatus.textContent = 'Failed';
+    dlSetProgress(0, 'Failed');
+    showDlMsg('❌ ' + err.message, 'error');
   } finally {
-    btnDlMp4.disabled = false;
+    dlBusy = false;
     spinner2.style.display = 'none';
     dlMp4Label.textContent = '⬇ Download as MP4';
+    updateDlBtn();
   }
 }
 
-// ── M3U8 Parser ──────────────────────────────────────────────────────────────
-function parseM3u8Segments(text, baseUrl) {
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-  const segments = [];
-  for (const line of lines) {
-    if (line.startsWith('#')) continue;
-    if (line.endsWith('.ts') || line.includes('.ts?') || line.endsWith('.aac') || line.endsWith('.mp4') || line.endsWith('.m4s')) {
-      if (line.startsWith('http://') || line.startsWith('https://')) {
-        segments.push(line);
-      } else if (line.startsWith('/')) {
-        const origin = new URL(baseUrl).origin;
-        segments.push(origin + line);
-      } else {
-        segments.push(baseUrl + line);
-      }
-    }
+// ── FFmpeg remux: replicates  ffmpeg -i input.ts -c copy output.mp4 ──────────
+async function dlWithFFmpeg() {
+  if (!ffmpegReady) throw new Error('FFmpeg engine not ready yet. Please wait a moment.');
+  const total = dlSegmentUrls.length;
+
+  // Step 1 — Download all segments
+  dlLog(`Downloading ${total} segments…`, 'log-warn');
+  const buffers = [];
+  for (let i = 0; i < total; i++) {
+    dlSetProgress(Math.round((i / total) * 60), `Segment ${i+1} / ${total}`);
+    dlLog(`↓ seg ${i+1}/${total}: ${dlSegmentUrls[i].split('/').pop().split('?')[0]}`, 'log-dim');
+    buffers.push(await fetchSegmentBinary(dlSegmentUrls[i]));
   }
-  return segments;
+  dlLog(`✔ All ${total} segments downloaded`, 'log-ok');
+
+  // Step 2 — Concatenate into one TS buffer
+  dlSetProgress(65, 'Merging segments…');
+  const totalBytes = buffers.reduce((a, b) => a + b.byteLength, 0);
+  const merged = new Uint8Array(totalBytes);
+  let off = 0;
+  for (const buf of buffers) { merged.set(new Uint8Array(buf), off); off += buf.byteLength; }
+  dlLog(`Merged: ${formatBytes(totalBytes)}`, 'log-ok');
+
+  // Step 3 — Write to FFmpeg virtual FS
+  dlSetProgress(70, 'Writing to FFmpeg FS…');
+  ffmpeg.setLogger(() => {}); // silence for this section
+  ffmpeg.setProgress(({ ratio }) => {
+    dlSetProgress(75 + Math.round(ratio * 20), 'FFmpeg remuxing…');
+  });
+  ffmpeg.FS('writeFile', 'input.ts', merged);
+
+  // Step 4 — Run: ffmpeg -i input.ts -c copy -movflags +faststart output.mp4
+  dlSetProgress(75, 'FFmpeg remuxing…');
+  dlLog('Running: ffmpeg -i input.ts -c copy -movflags +faststart output.mp4', 'log-warn');
+  await ffmpeg.run('-i','input.ts','-c','copy','-movflags','+faststart','-y','output.mp4');
+
+  // Step 5 — Read & save
+  dlSetProgress(97, 'Reading output…');
+  const data = ffmpeg.FS('readFile', 'output.mp4');
+  const blob = new Blob([data.buffer], { type: 'video/mp4' });
+  dlLog(`✔ Output: ${formatBytes(blob.size)}`, 'log-ok');
+
+  // Cleanup FS
+  try { ffmpeg.FS('unlink', 'input.ts');   } catch(e) {}
+  try { ffmpeg.FS('unlink', 'output.mp4'); } catch(e) {}
+
+  dlSetProgress(100, 'Done! Saving file…');
+  const filename = guessDlFilename() + '.mp4';
+  downloadBlob(blob, filename);
+  dlLog(`✔ Saved as ${filename}`, 'log-ok');
+  showDlMsg(`✅ Downloaded ${filename} (${formatBytes(blob.size)})`, 'success');
 }
 
-async function fetchText(url) {
-  // Try direct first, then our /api/proxy serverless function
-  for (const src of [url, proxyUrl(url)]) {
+// ── Fast concat: raw byte merge ───────────────────────────────────────────────
+async function dlWithConcat() {
+  const total = dlSegmentUrls.length;
+  dlLog(`Downloading ${total} segments (fast concat)…`, 'log-warn');
+  const buffers = [];
+  for (let i = 0; i < total; i++) {
+    dlSetProgress(Math.round((i / total) * 90), `Segment ${i+1} / ${total}`);
+    dlLog(`↓ seg ${i+1}/${total}`, 'log-dim');
+    buffers.push(await fetchSegmentBinary(dlSegmentUrls[i]));
+  }
+  dlSetProgress(95, 'Merging…');
+  const totalBytes = buffers.reduce((a, b) => a + b.byteLength, 0);
+  const merged = new Uint8Array(totalBytes);
+  let off = 0;
+  for (const buf of buffers) { merged.set(new Uint8Array(buf), off); off += buf.byteLength; }
+  dlSetProgress(100, 'Done!');
+  const filename = guessDlFilename() + '.mp4';
+  downloadBlob(new Blob([merged], { type: 'video/mp4' }), filename);
+  dlLog(`✔ Saved ${filename} (${formatBytes(totalBytes)})`, 'log-ok');
+  showDlMsg(`✅ Downloaded ${filename} — use VLC if playback issues occur`, 'success');
+}
+
+// ── Playlist parsers ──────────────────────────────────────────────────────────
+async function fetchPlaylistText(url) {
+  const proxies = [
+    url,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  ];
+  for (const src of proxies) {
     try {
-      const res = await fetch(src);
-      if (res.ok) return res.text();
+      const res = await fetch(src, { signal: AbortSignal.timeout(12000) });
+      if (res.ok) {
+        const text = await res.text();
+        if (text.includes('#EXTM3U')) return text;
+      }
     } catch(e) { /* try next */ }
   }
-  throw new Error('Fetch failed — CDN may require authentication or block all external access.');
+  throw new Error('Could not fetch playlist. CDN may require authentication or block cross-origin access.');
 }
 
-async function fetchBinary(url) {
-  // Try direct first (fastest for open CDNs), then /api/proxy for restricted ones
-  for (const src of [url, proxyUrl(url)]) {
+async function fetchSegmentBinary(url) {
+  const proxies = [
+    url,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  ];
+  for (const src of proxies) {
     try {
-      const res = await fetch(src);
+      const res = await fetch(src, { signal: AbortSignal.timeout(30000) });
       if (res.ok) return res.arrayBuffer();
     } catch(e) { /* try next */ }
   }
-  throw new Error(`Failed to fetch segment: ${url.split('/').pop()}`);
+  throw new Error(`Failed to fetch segment: ${url.split('/').pop().split('?')[0]}`);
 }
 
+function parseMasterPlaylist(text, base) {
+  const lines = text.split('\n').map(l => l.trim());
+  const result = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].startsWith('#EXT-X-STREAM-INF')) {
+      const info = lines[i];
+      const urlLine = lines[i+1];
+      if (!urlLine || urlLine.startsWith('#')) continue;
+      const bw  = (info.match(/BANDWIDTH=(\d+)/)    || [])[1];
+      const res = (info.match(/RESOLUTION=([^\s,]+)/) || [])[1];
+      const url = urlLine.startsWith('http') ? urlLine
+                : urlLine.startsWith('/')    ? new URL(base).origin + urlLine
+                :                              base + urlLine;
+      result.push({ bandwidth: bw ? +bw : 0, res: res || '?', url });
+      i++;
+    }
+  }
+  result.sort((a, b) => b.bandwidth - a.bandwidth);
+  return result;
+}
+
+function parseSegmentUrls(text, base) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const segs = [];
+  for (const line of lines) {
+    if (line.startsWith('#')) continue;
+    // Accept .ts, .aac, .mp4, .m4s, .fmp4 or any non-m3u8 line after #EXTINF
+    if (/\.(ts|aac|mp4|m4s|fmp4)(\?|$)/i.test(line) || (!line.includes('.m3u') && line.length > 3)) {
+      if      (line.startsWith('http://') || line.startsWith('https://')) segs.push(line);
+      else if (line.startsWith('/')) segs.push(new URL(base).origin + line);
+      else    segs.push(base + line);
+    }
+  }
+  return segs;
+}
+
+function estimateDuration(text) {
+  const matches = text.match(/#EXTINF:([\d.]+)/g) || [];
+  if (!matches.length) return null;
+  const total = matches.reduce((a, m) => a + parseFloat(m.replace('#EXTINF:','')), 0);
+  const m = Math.floor(total/60), s = Math.round(total%60);
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+
+function guessDlFilename() {
+  const u = hlsUrlInput.value.trim();
+  const parts = u.split('/');
+  for (let i = parts.length - 2; i >= 0; i--) {
+    const p = parts[i].split('?')[0];
+    if (p && p.length > 2 && !p.includes('.m3u')) return p;
+  }
+  return 'video';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SHARED HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+function formatBytes(b) {
+  if (b < 1024)    return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(2) + ' MB';
+}
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 8000);
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+loadFFmpeg();
 </script>
 </body>
 </html>
